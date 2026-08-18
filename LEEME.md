@@ -11,8 +11,9 @@ inventario-normativo/
 ├── index.html               ← la aplicación (login, inventario, nuevos registros)
 ├── config.js                ← tus credenciales de Supabase (URL + clave anon)
 ├── supabase-setup.sql       ← esquema de base de datos + seguridad (ejecutar 1 vez)
+├── supabase-coleccion.sql   ← agrega el campo 'coleccion' a una base ya creada
 ├── migrar-a-supabase.mjs    ← sube los 123 PDF actuales a Supabase (Node 18+)
-├── generar-inventario.ps1   ← (opcional) regenera inventario.js desde la carpeta local
+├── generar-inventario.ps1   ← genera el catalogo (soporta lotes con -Coleccion / -Anexar)
 ├── inventario.js            ← catálogo local (solo se usa para la migración inicial)
 ├── documentos/              ← 123 PDF locales (fuente para la migración inicial)
 ├── supabase/functions/preguntar/index.ts  ← Edge Function del Asistente IA (Claude)
@@ -77,6 +78,57 @@ Al terminar, tendrás los 123 PDF y su metadata en Supabase.
 - **Consultar:** buscar, filtrar por tipo/entidad/año y ver el PDF incrustado.
 - **Nuevos registros** (solo administradores): pestaña para subir un PDF nuevo con
   sus datos; queda guardado en la base y visible para todos al instante.
+- **Colecciones:** cada documento pertenece a una colección (por defecto
+  `Normativa base`, que es el lote de los 122 documentos originales). Cuando hay
+  más de una, el Inventario muestra arriba una barra de pestañas
+  — *Todas | Normativa base | …* — con el conteo de cada una. La pestaña filtra
+  la lista y se combina con el buscador y los filtros de tipo/entidad/año.
+  Si solo existe una colección, la barra no aparece.
+
+---
+
+## Agregar un lote nuevo de documentos
+
+Un "lote" es una colección: sirve para distinguir la normativa que se incorpora
+después de la carga inicial, sin mezclarla con los 122 documentos originales.
+
+**Paso 0 (una sola vez).** Si la base aún no tiene el campo `coleccion`, abre
+**Supabase → SQL Editor → New query**, pega el contenido de
+`supabase-coleccion.sql` y pulsa **Run**. Es idempotente: se puede repetir sin
+daño. Los documentos ya cargados quedan en `Normativa base`.
+
+**Opción A — pocos documentos: desde la propia app.**
+Entra como administrador → pestaña **Nuevos registros** → completa los datos y,
+en el campo **Colección**, elige una existente de la lista o escribe el nombre del
+lote nuevo (p. ej. `Normativa 2026`). En blanco = `Normativa base`.
+
+**Opción B — lote masivo: por PowerShell 7 (`pwsh`).**
+
+1. Generar el catálogo del lote y copiar sus PDF a `documentos/` sin borrar nada:
+
+   ```
+   pwsh -c "& ./generar-inventario.ps1 -Origen 'C:\ruta\de\los\PDF nuevos' -Coleccion 'Normativa 2026' -Salida 'inventario-2026.js' -Anexar"
+uta\de\los\PDF nuevos' -Coleccion 'Normativa 2026' -Salida 'inventario-2026.js' -Anexar"
+   ```
+
+   `-Anexar` conserva los documentos ya presentes y **omite** los PDF cuyo
+   contenido ya esté en `documentos/` (compara por hash), así que se puede
+   repetir sin duplicar. Si no hay nada nuevo, no pisa el catálogo anterior.
+
+2. Subir solo ese lote a Supabase, sin tocar lo ya cargado:
+
+   ```
+   pwsh -c "& ./migrar-a-supabase.ps1 -SupabaseUrl 'https://armvuvoluoxspfjpefex.supabase.co' -ServiceKey '<service_role eyJ...>' -Inventario 'inventario-2026.js' -Anexar"
+   ```
+
+   `-Anexar` es lo importante: **sin** ese conmutador el script vacía la tabla y
+   vuelve a cargar todo desde cero. Con `-Coleccion 'Otro nombre'` se puede forzar
+   la colección de todas las filas del catálogo.
+
+3. Recarga la app: la barra de pestañas aparece sola con el lote nuevo.
+
+> Límite del plan gratuito de Supabase: **50 MB por archivo**. Los PDF que lo
+> superen fallan en la subida y quedan listados como `[fallo]` al final del script.
 
 ### Dar acceso a más usuarios (compartir)
 1. Publica la página (ver abajo) y comparte la URL.

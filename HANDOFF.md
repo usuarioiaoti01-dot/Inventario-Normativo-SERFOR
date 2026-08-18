@@ -27,6 +27,10 @@ Contacto/admin: `mmontoya@serfor.gob.pe`.
   ver Pendientes).
 - **Asistente IA operativo** con la API de Claude vía Edge Function (probado y
   respondiendo con citas de página en documentos pequeños).
+- **Colecciones (lotes) implementadas:** cada documento tiene un campo `coleccion`
+  y el Inventario muestra una barra de pestañas *Todas | Normativa base | …* cuando
+  hay más de una. Los 122 documentos ya cargados quedan en `Normativa base`.
+  Falta ejecutar `supabase-coleccion.sql` en Supabase para crear el campo.
 - **Repo en GitHub** actualizado.
 - **Aún NO publicado** en el servidor de SERFOR (paquete listo, ver Pendientes).
 
@@ -84,7 +88,11 @@ Navegador (index.html + config.js + lib/supabase.js)
    para no depender de un CDN externo en el servidor de SERFOR.
 7. **Migración con service_role JWT legacy** (no la clave nueva `sb_secret_`, que da
    401 en las llamadas REST).
-8. **UI:** columna de directivas angosta (`0.6fr`) y documento grande (`1.4fr`);
+8. **Lotes de normativa = campo `coleccion`**, no fecha de carga: es explícito,
+   no envejece solo y sirve para futuros lotes. La barra de pestañas vive **dentro**
+   de Inventario (no como pestaña principal aparte) para reutilizar buscador,
+   filtros, visor y asistente. Se oculta sola si solo hay una colección.
+9. **UI:** columna de directivas angosta (`0.6fr`) y documento grande (`1.4fr`);
    denominación "Inventario Normativo SERFOR"; visor de PDF sin panel de miniaturas
    (`#navpanes=0&pagemode=none&view=FitH`).
 
@@ -100,9 +108,10 @@ Navegador (index.html + config.js + lib/supabase.js)
 | `capibara-serfor.png` | Imagen del botón del asistente | ✅ Sí |
 | `supabase/functions/preguntar/index.ts` | Edge Function del asistente (Deno) | ❌ Se despliega en Supabase |
 | `supabase-setup.sql` | Esquema BD + RLS + bucket (ejecutar 1 vez) | ❌ Solo instalación |
+| `supabase-coleccion.sql` | Agrega el campo `coleccion` a una base ya creada (idempotente) | ❌ Solo instalación |
 | `migrar-a-supabase.ps1` | Migra los PDF locales a Supabase (PowerShell) | ❌ Solo migración |
 | `migrar-a-supabase.mjs` | Igual, versión Node (alternativa) | ❌ Solo migración |
-| `generar-inventario.ps1` | Regenera `inventario.js` desde la carpeta fuente | ❌ Solo mantenimiento |
+| `generar-inventario.ps1` | Genera el catálogo; con `-Coleccion` / `-Anexar` arma lotes nuevos | ❌ Solo mantenimiento |
 | `inventario.js` | Catálogo local (fuente de la migración) | ❌ Solo migración |
 | `documentos/` | 123 PDF locales (~272 MB) | ❌ (viven en Supabase; excluidos de git) |
 | `publicar/` | Paquete listo para copiar a IIS (index.html, config.js, lib/, imagen, web.config) | ✅ Este es lo que se copia |
@@ -160,6 +169,15 @@ Navegador (index.html + config.js + lib/supabase.js)
 
 ## 8. Pendientes (lo que falta)
 
+0. **Activar las colecciones en la base (bloquea el lote nuevo):** ejecutar
+   `supabase-coleccion.sql` en **Supabase → SQL Editor**. Hasta que se ejecute,
+   la app detecta que la columna no existe y funciona exactamente como antes
+   (sin barra de pestañas y sin el campo Colección en el formulario), así que se
+   puede publicar `index.html` sin riesgo. Lo que **sí** requiere el SQL es cargar
+   un lote nuevo con su propia colección. Después de eso, queda
+   pendiente **decidir de dónde salen los PDF del lote nuevo** (carpeta origen) y
+   cómo se llamará la colección; el procedimiento está en `LEEME.md` →
+   *Agregar un lote nuevo de documentos*.
 1. **Redesplegar la Edge Function `preguntar`** con la última versión de
    `index.ts` (incluye el mensaje "DOCUMENTO GRANDE…" para PDF de +100 páginas) y
    **probar** con el reglamento grande (215 páginas) y con una directiva pequeña.
@@ -191,6 +209,10 @@ Navegador (index.html + config.js + lib/supabase.js)
 - Para **regenerar el catálogo** tras agregar PDF a la carpeta fuente:
   `pwsh -c "& ./generar-inventario.ps1"` y luego re-migrar.
 - Para **re-migrar** a Supabase: `./migrar-a-supabase.ps1 -SupabaseUrl "https://armvuvoluoxspfjpefex.supabase.co" -ServiceKey "<service_role eyJ...>"` (pwsh 7).
+  ⚠️ Sin `-Anexar` este script **vacía la tabla** y recarga todo desde cero.
+- Para **agregar un lote nuevo** sin tocar lo ya cargado: `generar-inventario.ps1`
+  con `-Origen`, `-Coleccion`, `-Salida` y `-Anexar`, y luego `migrar-a-supabase.ps1`
+  con `-Inventario` y `-Anexar`. Pasos completos en `LEEME.md`.
 - Para **cambiar el modelo** del asistente: editar `model: "claude-haiku-4-5"` en
   `supabase/functions/preguntar/index.ts` y redeploy.
 - La guía operativa completa (despliegue, asistente, Chatbase→Claude, IIS) está en

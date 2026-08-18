@@ -2,6 +2,11 @@
 # No se versionan en GitHub. Se conservan localmente y en Supabase.
 documentos/
 
+# PDF del lote OPR: se descargan con descargar_documentos_normativos_opr.ps1
+# desde cdn.www.gob.pe. Se versionan el indice y el script, no los PDF.
+Documentos Normativos OPR/**/*.pdf
+Documentos Normativos OPR/errores_descarga.csv
+
 # Archivos de sistema
 Thumbs.db
 desktop.ini

@@ -88,6 +88,14 @@
   select.filter:focus{outline:2px solid var(--brand);outline-offset:1px}
   .count-pill{font-size:.8rem;color:var(--ink-soft);margin-left:auto;font-variant-numeric:tabular-nums}
 
+  /* Pestanas de coleccion (lotes de normativa) */
+  .colltabs{background:var(--surface);border-bottom:1px solid var(--line);padding:0 24px;display:flex;gap:2px;align-items:flex-end;flex:none;overflow-x:auto}
+  .colltabs button{background:transparent;border:0;border-bottom:3px solid transparent;color:var(--ink-soft);font-family:inherit;font-size:.85rem;font-weight:600;padding:11px 14px;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:7px}
+  .colltabs button:hover{color:var(--ink)}
+  .colltabs button.on{color:var(--brand);border-bottom-color:var(--brand)}
+  .colltabs button i{font-style:normal;font-size:.7rem;font-weight:700;background:var(--surface-2);color:var(--ink-faint);border-radius:10px;padding:1px 7px;font-variant-numeric:tabular-nums}
+  .colltabs button.on i{background:var(--brand-tint);color:var(--brand)}
+
   .workspace{display:grid;grid-template-columns:0.6fr 1.4fr;flex:1;min-height:0}
   @media (max-width:900px){.workspace{grid-template-columns:1fr}}
 
@@ -219,6 +227,7 @@
 
   <!-- Vista: Inventario -->
   <div id="viewInv" class="view">
+    <div class="colltabs" id="collTabs" hidden></div>
     <div class="toolbar">
       <div class="search">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
@@ -288,6 +297,12 @@
               <label for="uEstado">Estado</label>
               <select id="uEstado"><option>Vigente</option><option>Modificada</option><option>Derogada</option></select>
             </div>
+            <div class="field full" id="campoCol" hidden>
+              <label for="uCol">Colección</label>
+              <input id="uCol" list="colList" placeholder="Normativa base" autocomplete="off">
+              <datalist id="colList"></datalist>
+              <p class="hint" style="margin:6px 0 0">Agrupa el documento en una pestaña del inventario. Elige una existente o escribe una nueva. Si lo dejas vacío, entra en «Normativa base».</p>
+            </div>
             <div class="field full">
               <label>Archivo PDF *</label>
               <label class="filedrop" id="fileDrop" for="uFile">Haz clic para elegir un PDF o arrástralo aquí</label>
@@ -348,8 +363,10 @@
   const esc = s => (s==null?"":String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const stCls = s => s==="Derogada"?"der":s==="Modificada"?"mod":"vig";
 
-  let sb = null, INVENTARIO = [], isAdmin = false, currentUser = null;
-  const state = { q:"", tipo:"", ent:"", year:"", active:null };
+  let sb = null, INVENTARIO = [], isAdmin = false, currentUser = null, COLS = [];
+  let HAY_COLECCION = false;   // la base ya tiene la columna 'coleccion' (ver supabase-coleccion.sql)
+  const COL_BASE = "Normativa base";   // coleccion de los documentos ya cargados
+  const state = { q:"", tipo:"", ent:"", year:"", col:"", active:null };   // col:"" = todas
 
   // ---------- Arranque ----------
   function boot(){
@@ -396,7 +413,38 @@
     const { data, error } = await sb.from('documentos').select('*');
     if(error){ document.getElementById('listPane').innerHTML = `<div class="empty">Error al cargar: ${esc(error.message)}</div>`; return; }
     INVENTARIO = data || [];
-    buildFilters(); render();
+    // Si la base todavia no tiene la columna, la app funciona igual pero sin colecciones
+    HAY_COLECCION = INVENTARIO.length > 0 && Object.prototype.hasOwnProperty.call(INVENTARIO[0], 'coleccion');
+    document.getElementById('campoCol').hidden = !HAY_COLECCION;
+    buildColTabs(); buildColList(); buildFilters(); render();
+  }
+
+  // Colecciones presentes, con la base siempre primero y el resto alfabetico
+  function colecciones(){
+    const cs = [...new Set(INVENTARIO.map(d=>d.coleccion||COL_BASE))];
+    return cs.sort((a,b)=> a===COL_BASE?-1 : b===COL_BASE?1 : a.localeCompare(b,'es'));
+  }
+
+  // La barra solo aparece cuando hay mas de una coleccion que diferenciar
+  function buildColTabs(){
+    const cs = colecciones();
+    const bar = document.getElementById('collTabs');
+    if(!HAY_COLECCION || cs.length < 2){ bar.hidden = true; bar.innerHTML = ''; state.col = ""; return; }
+    if(state.col && !cs.includes(state.col)) state.col = "";
+    const cuenta = c => INVENTARIO.filter(d=>(d.coleccion||COL_BASE)===c).length;
+    bar.hidden = false;
+    // Se referencian por indice: los nombres vienen de la base y pueden traer comillas
+    COLS = cs;
+    bar.innerHTML =
+      `<button class="${state.col===''?'on':''}" onclick="setCol(-1)">Todas<i>${INVENTARIO.length}</i></button>` +
+      cs.map((c,i)=>`<button class="${state.col===c?'on':''}" onclick="setCol(${i})">${esc(c)}<i>${cuenta(c)}</i></button>`).join('');
+  }
+  function setCol(i){ state.col = i<0 ? "" : (COLS[i]||""); buildColTabs(); render(); }
+
+  // Sugerir en el formulario las colecciones que ya existen
+  function buildColList(){
+    document.getElementById('colList').innerHTML =
+      colecciones().map(c=>`<option value="${esc(c)}">`).join('');
   }
 
   function buildFilters(){
@@ -414,17 +462,19 @@
   function filtered(){
     const q = state.q.toLowerCase();
     return INVENTARIO.filter(d=>{
+      if(state.col && (d.coleccion||COL_BASE)!==state.col) return false;
       if(state.tipo && d.tipo!==state.tipo) return false;
       if(state.ent && d.entidad!==state.ent) return false;
       if(state.year && String(d.anio)!==state.year) return false;
-      if(q){ const hay=(d.titulo+" "+d.tipo+" "+d.entidad+" "+(d.anio||"")+" "+(d.original||"")).toLowerCase(); if(!hay.includes(q)) return false; }
+      if(q){ const hay=(d.titulo+" "+d.tipo+" "+d.entidad+" "+(d.anio||"")+" "+(d.original||"")+" "+(d.coleccion||"")).toLowerCase(); if(!hay.includes(q)) return false; }
       return true;
     });
   }
 
   function render(){
     const items = filtered();
-    document.getElementById('countPill').textContent = `${items.length} de ${INVENTARIO.length}`;
+    const universo = state.col ? INVENTARIO.filter(d=>(d.coleccion||COL_BASE)===state.col).length : INVENTARIO.length;
+    document.getElementById('countPill').textContent = `${items.length} de ${universo}`;
     const pane = document.getElementById('listPane');
     if(!items.length){ pane.innerHTML=`<div class="empty">Sin resultados.</div>`; return; }
     const byTipo = {};
@@ -456,7 +506,7 @@
     const head = document.getElementById('docHead');
     head.hidden = false;
     head.innerHTML = `
-      <div class="sub">${esc(d.tipo)} · ${esc(d.entidad||'')}${d.anio?` · ${d.anio}`:''}</div>
+      <div class="sub">${esc(d.tipo)} · ${esc(d.entidad||'')}${d.anio?` · ${d.anio}`:''}${d.coleccion&&d.coleccion!==COL_BASE?` · ${esc(d.coleccion)}`:''}</div>
       <h2>${esc(d.titulo)}</h2>
       <div class="metas">
         <span class="badge ${stCls(d.estado)}">${esc(d.estado||'Vigente')}</span>
@@ -603,6 +653,7 @@
       kb: Math.round(file.size/1024),
       archivo: path, original: file.name, created_by: currentUser.id
     };
+    if(HAY_COLECCION) row.coleccion = document.getElementById('uCol').value.trim() || COL_BASE;
     const ins = await sb.from('documentos').insert(row);
     if(ins.error){
       await sb.storage.from('documentos').remove([path]); // revertir archivo huérfano

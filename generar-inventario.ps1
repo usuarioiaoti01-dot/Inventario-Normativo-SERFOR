@@ -1,21 +1,42 @@
 # ============================================================
 #  Generador del Inventario Normativo - SERFOR
-#  Lee TODOS los PDF de la carpeta "Base de Conocimiento Normas",
-#  copia los archivos a documentos/ y regenera inventario.js
+#  Lee TODOS los PDF de una carpeta origen, los copia a documentos/
+#  y genera el catalogo con la coleccion a la que pertenecen.
 #
-#  Uso:  desde esta carpeta -> powershell -ExecutionPolicy Bypass -File .\generar-inventario.ps1
-#  Cada vez que agregues/quites PDF en la carpeta origen, vuelve a ejecutarlo.
+#  Uso normal (regenera el lote base, BORRA y rehace documentos/):
+#    pwsh -c "& ./generar-inventario.ps1"
+#
+#  Agregar un LOTE NUEVO sin tocar lo ya cargado:
+#    pwsh -c "& ./generar-inventario.ps1 -Origen 'C:\ruta\PDF nuevos' -Coleccion 'Normativa 2026' -Salida 'inventario-2026.js' -Anexar"
+#
+#  -Anexar  : no borra documentos/ y omite los PDF cuyo contenido ya este ahi.
+#  -Salida  : archivo de catalogo a generar (por defecto inventario.js).
 # ============================================================
+param(
+  [string]$Origen    = "C:\Documentos SERFOR\SERFOR\Documentos PDF\Base de Conocimiento Normas",
+  [string]$Coleccion = "Normativa base",
+  [string]$Salida    = "inventario.js",
+  [switch]$Anexar
+)
 
-$src  = "C:\Documentos SERFOR\SERFOR\Documentos PDF\Base de Conocimiento Normas"
-$dest = "C:\Users\mmontoya\Desarrollo Claude\inventario-normativo"
+$src  = $Origen
+$dest = $PSScriptRoot
 $docs = Join-Path $dest "documentos"
 
 if(-not (Test-Path $src)){ Write-Error "No existe la carpeta origen: $src"; exit 1 }
 
-# Limpiar y recrear carpeta de documentos del sitio
-if(Test-Path $docs){ Remove-Item -LiteralPath $docs -Recurse -Force }
-New-Item -ItemType Directory -Path $docs | Out-Null
+$previos = @{}   # hash -> nombre, de lo que ya vive en documentos/
+if($Anexar){
+  if(-not (Test-Path $docs)){ New-Item -ItemType Directory -Path $docs | Out-Null }
+  foreach($p in (Get-ChildItem -LiteralPath $docs -File -Filter *.pdf)){
+    $previos[(Get-FileHash -LiteralPath $p.FullName -Algorithm MD5).Hash] = $p.Name
+  }
+  Write-Output ("Modo -Anexar: se conservan {0} documentos ya existentes." -f $previos.Count)
+} else {
+  # Limpiar y recrear carpeta de documentos del sitio
+  if(Test-Path $docs){ Remove-Item -LiteralPath $docs -Recurse -Force }
+  New-Item -ItemType Directory -Path $docs | Out-Null
+}
 
 $files = Get-ChildItem -LiteralPath $src -Recurse -File -Filter *.pdf
 
@@ -99,16 +120,19 @@ $used = @{}
 $hashes = @{}
 $id = 0
 $dupCount = 0
+$yaEstaban = 0
 foreach($f in ($files | Sort-Object Name)){
   # dedupe por contenido (hash) para eliminar copias idénticas
   $h = (Get-FileHash -LiteralPath $f.FullName -Algorithm MD5).Hash
   if($hashes.ContainsKey($h)){ $dupCount++; continue }
+  # en modo -Anexar, omitir lo que ya vive en documentos/ (mismo contenido)
+  if($previos.ContainsKey($h)){ $yaEstaban++; continue }
   $hashes[$h] = $true
 
   $id++
   $slug = Get-Slug $f.Name
   $fname = "$slug.pdf"
-  if($used.ContainsKey($fname)){ $fname = "$slug`_$id.pdf" }
+  if($used.ContainsKey($fname) -or (Test-Path -LiteralPath (Join-Path $docs $fname))){ $fname = "$slug`_$id.pdf" }
   $used[$fname] = $true
   Copy-Item -LiteralPath $f.FullName -Destination (Join-Path $docs $fname) -Force
 
@@ -119,6 +143,7 @@ foreach($f in ($files | Sort-Object Name)){
     entidad=(Get-Entidad $f.Name)
     anio=(Get-Anio $f.Name $f.FullName)
     estado='Vigente'
+    coleccion=$Coleccion
     fecha=$f.LastWriteTime.ToString('yyyy-MM-dd')
     kb=[math]::Round($f.Length/1KB)
     archivo="documentos/$fname"
@@ -126,10 +151,21 @@ foreach($f in ($files | Sort-Object Name)){
   }
 }
 
-$json = $rows | ConvertTo-Json -Depth 4
-$out = "// Inventario normativo SERFOR - generado desde: $src`r`n// Regenerar con: generar-inventario.ps1  |  Documentos: $($rows.Count)`r`nconst INVENTARIO = $json;"
-Set-Content -LiteralPath (Join-Path $dest "inventario.js") -Value $out -Encoding UTF8
+# -InputObject @(...) evita que un solo elemento se serialice como objeto en vez de lista
+$json = if($rows.Count -eq 0){ '[]' } else { ConvertTo-Json -InputObject @($rows) -Depth 4 }
+$salidaPath = if([IO.Path]::IsPathRooted($Salida)){ $Salida } else { Join-Path $dest $Salida }
 
-Write-Output "GENERADO: $($rows.Count) documentos  (duplicados idénticos omitidos: $dupCount)"
+# Nada nuevo que anexar: no pisar el catalogo anterior
+if($rows.Count -eq 0 -and $Anexar -and (Test-Path -LiteralPath $salidaPath)){
+  Write-Output "Sin documentos nuevos: se conserva el catalogo '$Salida' tal como estaba."
+  Write-Output "  duplicados identicos omitidos: $dupCount  |  ya presentes en documentos/: $yaEstaban"
+  return
+}
+
+$out = "// Inventario normativo SERFOR - generado desde: $src`r`n// Coleccion: $Coleccion  |  Documentos: $($rows.Count)`r`n// Regenerar con: generar-inventario.ps1`r`nconst INVENTARIO = $json;"
+Set-Content -LiteralPath $salidaPath -Value $out -Encoding UTF8
+
+Write-Output "GENERADO: $($rows.Count) documentos en '$Salida'  (coleccion: $Coleccion)"
+Write-Output "  duplicados idénticos omitidos: $dupCount  |  ya presentes en documentos/: $yaEstaban"
 $rows | Group-Object tipo | Sort-Object Count -Descending | ForEach-Object { Write-Output ("  {0,-22} {1}" -f $_.Name,$_.Count) }
 Write-Output "Peso total copiado: $([math]::Round((Get-ChildItem $docs -Filter *.pdf | Measure-Object Length -Sum).Sum/1MB,1)) MB"

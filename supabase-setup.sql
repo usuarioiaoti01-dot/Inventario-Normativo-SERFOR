@@ -51,6 +51,7 @@ create table if not exists public.documentos (
   entidad    text,
   anio       int,
   estado     text default 'Vigente',       -- Vigente | Modificada | Derogada
+  coleccion  text not null default 'Normativa base',  -- lote/grupo al que pertenece
   fecha      date,
   kb         int,
   archivo    text not null,                 -- ruta del PDF dentro del bucket 'documentos'
@@ -61,6 +62,7 @@ create table if not exists public.documentos (
 
 create index if not exists documentos_tipo_idx on public.documentos(tipo);
 create index if not exists documentos_anio_idx on public.documentos(anio);
+create index if not exists documentos_coleccion_idx on public.documentos(coleccion);
 
 alter table public.documentos enable row level security;
 
