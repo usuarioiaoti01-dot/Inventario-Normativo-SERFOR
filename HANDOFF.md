@@ -32,12 +32,12 @@ Contacto/admin: `mmontoya@serfor.gob.pe`.
   *Todas | Normativa base | Normativos OPR* con el conteo de cada una. Una tabla
   que aún no exista se omite sin romper nada. Dentro de una tabla, el campo
   opcional `coleccion` permite subdividir en sublotes (filtro *Toda colección*).
-- **Lote OPR preparado (116 PDF, 148 MB):** 70 normas de SERFOR (47 lineamientos +
-  23 directivas), todas vigentes, descargadas en `Documentos Normativos OPR/`,
-  copiadas a `documentos/` con prefijo `opr_` y catalogadas en `inventario-opr.js`.
-  Van a su **propia tabla `normativos_opr`** (pestaña "Normativos OPR"), no
-  mezclados con los 122 originales. Ninguna supera los 50 MB.
-  **Falta crear la tabla y subirlo** (ver Pendientes).
+- **Lote OPR MIGRADO (2026-08-18):** 116 PDF / 148 MB — 70 normas de SERFOR
+  (47 lineamientos + 23 directivas), todas vigentes — en su **propia tabla
+  `normativos_opr`** (pestaña "Normativos OPR"), separados de los 122 originales.
+  Subidos: 116, fallidos: 0. Los PDF están en el mismo bucket `documentos` con
+  prefijo `opr_`, así que el visor y el asistente IA los abren sin cambios.
+  Fuente y catálogo: `Documentos Normativos OPR/` e `inventario-opr.js`.
 - **Repo en GitHub** actualizado.
 - **Aún NO publicado** en el servidor de SERFOR (paquete listo, ver Pendientes).
 
@@ -220,32 +220,20 @@ Navegador (index.html + config.js + lib/supabase.js)
 
 ## 8. Pendientes (lo que falta)
 
-0. **Crear la tabla `normativos_opr`:** ejecutar `supabase-tabla-opr.sql` en
-   **Supabase → SQL Editor → New query → Run**. Es idempotente. Mientras no se
-   ejecute, la app omite esa fuente y funciona exactamente como antes (una sola
-   pestaña, 122 documentos), así que **publicar `index.html` no tiene riesgo**.
-   `supabase-coleccion.sql` es aparte y **opcional**: solo hace falta si se quiere
-   subdividir la tabla `documentos` en sublotes.
-0b. **Subir el lote OPR a su tabla.** Todo lo local ya está hecho (116 PDF en
-   `documentos/` y `inventario-opr.js` generado); falta un comando con la clave
-   `service_role`, en pwsh 7 y desde la carpeta del proyecto:
-
-   ```
-   pwsh -ExecutionPolicy Bypass -File .\migrar-a-supabase.ps1 -SupabaseUrl "https://armvuvoluoxspfjpefex.supabase.co" -ServiceKey "<service_role eyJ...>" -Inventario "inventario-opr.js" -Tabla "normativos_opr"
-   ```
-
-   ⚠️ **Revisar `-Tabla` antes de pulsar Enter.** Sin `-Anexar`, el script vacía
-   la tabla destino; si por error dice `documentos`, se pierden los 122 originales.
-   Al terminar, la app debe mostrar *Todas 238 | Normativa base 122 |
-   Normativos OPR 116*.
+0. ⚠️ **ROTAR LA CLAVE `service_role` — lo más urgente.** Quedó completa y
+   legible en capturas de pantalla del chat. Se cambia en **Supabase → Project
+   Settings → API**. La app usa una clave distinta (`sb_publishable_…` en
+   `config.js`), así que el sitio no debería verse afectado; después de rotar,
+   comprobar igualmente que el inventario carga y que el asistente responde.
+   Borrar también las líneas con la clave en el historial de PowerShell:
+   `C:\Users\mmontoya\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt`
 1. **Redesplegar la Edge Function `preguntar`** con la última versión de
    `index.ts` (incluye el mensaje "DOCUMENTO GRANDE…" para PDF de +100 páginas) y
    **probar** con el reglamento grande (215 páginas) y con una directiva pequeña.
    *(Estaba a punto de hacerse al momento de este handoff.)*
-2. **Rotar/regenerar las claves expuestas** en Supabase (Settings → API):
-   la `service_role` (eyJ…) y la `sb_secret_`, que quedaron visibles en capturas.
-   No afecta a la app (usa la clave pública). También conviene rotar la clave de
-   Claude si se mostró.
+2. **Otras claves expuestas** (además de la `service_role` del punto 0): la
+   `sb_secret_` quedó visible en capturas anteriores. Rotar también la clave de
+   Claude si llegó a mostrarse. Ninguna afecta a la app, que usa la pública.
 3. **Publicar el sitio en IIS de SERFOR** (decidido: IIS, con internet):
    copiar el contenido de `publicar/` a `C:\inetpub\wwwroot\normativa\`, crear la
    aplicación en IIS, activar HTTPS, y poner la URL pública en Supabase
