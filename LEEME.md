@@ -153,7 +153,7 @@ solo se muestra si esa tabla tiene la columna.
 2. Subir ese catálogo **a su tabla**:
 
    ```
-   pwsh -c "& ./migrar-a-supabase.ps1 -SupabaseUrl 'https://armvuvoluoxspfjpefex.supabase.co' -ServiceKey '<service_role eyJ...>' -Inventario 'inventario-2026.js' -Tabla 'normativa_2026'"
+   pwsh -ExecutionPolicy Bypass -File .\migrar-a-supabase.ps1 -SupabaseUrl "https://armvuvoluoxspfjpefex.supabase.co" -ServiceKey "<service_role eyJ...>" -Inventario "inventario-2026.js" -Tabla "normativa_2026"
    ```
 
    ⚠️ **Cuidado con `-Tabla`.** El script **vacía la tabla destino** antes de

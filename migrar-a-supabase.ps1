@@ -41,7 +41,9 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 # ---- Leer catalogo local (inventario.js) ----
 $invPath = if([IO.Path]::IsPathRooted($Inventario)){ $Inventario } else { Join-Path $here $Inventario }
 if(-not (Test-Path $invPath)){ Write-Error "No se encontro el catalogo: $invPath"; exit 1 }
-$raw = Get-Content -LiteralPath $invPath -Raw
+# -Encoding UTF8 explicito: Windows PowerShell 5.1 leeria el archivo como ANSI
+# y los titulos con tildes llegarian corrompidos a la base.
+$raw = Get-Content -LiteralPath $invPath -Raw -Encoding UTF8
 $start = $raw.IndexOf('[')
 $end   = $raw.LastIndexOf(']')
 $json  = $raw.Substring($start, $end - $start + 1)
@@ -87,9 +89,10 @@ foreach($d in $inventario){
       estado = $estado; coleccion = $col; fecha = $d.fecha; kb = $kb
       archivo = $local; original = $d.original
     } | ConvertTo-Json -Compress
+    # charset=utf-8 explicito: sin el, PS 5.1 manda el cuerpo en ASCII y las tildes se pierden
     Invoke-RestMethod -Method Post -Uri "$SupabaseUrl/rest/v1/$Tabla" `
       -Headers ($headers + @{ Prefer = 'return=minimal' }) `
-      -ContentType 'application/json' -Body $row | Out-Null
+      -ContentType 'application/json; charset=utf-8' -Body ([Text.Encoding]::UTF8.GetBytes($row)) | Out-Null
 
     $subidos++
     if($subidos % 10 -eq 0){ Write-Host ("   ...{0}/{1}" -f $subidos, $inventario.Count) -ForegroundColor DarkGray }

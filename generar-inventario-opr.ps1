@@ -34,7 +34,7 @@ $docs  = Join-Path $root "documentos"
 if(-not (Test-Path -LiteralPath $csv)){ Write-Error "No se encontro el indice: $csv"; exit 1 }
 if(-not (Test-Path -LiteralPath $docs)){ New-Item -ItemType Directory -Path $docs | Out-Null }
 
-$filas = Import-Csv -LiteralPath $csv
+$filas = Import-Csv -LiteralPath $csv -Encoding UTF8
 Write-Output ("Indice OPR: {0} archivos listados." -f $filas.Count)
 
 # Cuantos archivos tiene cada norma (Tipo + Item): si son varios, el titulo

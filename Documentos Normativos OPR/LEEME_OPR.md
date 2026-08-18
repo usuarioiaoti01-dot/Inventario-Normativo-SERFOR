@@ -61,7 +61,7 @@ Después de descargar los PDF con el paso anterior:
 pwsh -ExecutionPolicy Bypass -File .\generar-inventario-opr.ps1
 
 # 3) Subir este lote A SU TABLA
-./migrar-a-supabase.ps1 -SupabaseUrl "https://armvuvoluoxspfjpefex.supabase.co" -ServiceKey "<service_role>" -Inventario "inventario-opr.js" -Tabla "normativos_opr"
+pwsh -ExecutionPolicy Bypass -File .\migrar-a-supabase.ps1 -SupabaseUrl "https://armvuvoluoxspfjpefex.supabase.co" -ServiceKey "<service_role>" -Inventario "inventario-opr.js" -Tabla "normativos_opr"
 ```
 
 Cuidado con `-Tabla`: sin `-Anexar` el script **vacia la tabla destino** antes de

@@ -179,9 +179,18 @@ Navegador (index.html + config.js + lib/supabase.js)
   Las credenciales de GitHub ya están cacheadas (no vuelve a pedir login).
 
 **PowerShell / scripts**
-- Ejecutar los `.ps1` con **PowerShell 7 (pwsh)**, NO con `powershell.exe` 5.1
-  (lee UTF-8 como ANSI y rompe caracteres). Alternativa: mantener los scripts en
-  **ASCII puro** (sin tildes ni emojis) para que corran en cualquiera.
+- Ejecutar los `.ps1` con **PowerShell 7 (pwsh)** y `-ExecutionPolicy Bypass`:
+  la política de la máquina es `RemoteSigned` y `./script.ps1` a secas falla con
+  *"la ejecución de scripts está deshabilitada"*. Forma correcta:
+  `pwsh -ExecutionPolicy Bypass -File .\script.ps1 -Param valor`.
+- Mantener los scripts en **ASCII puro** (sin tildes ni emojis) para que corran
+  también en `powershell.exe` 5.1.
+- **Encoding explicito, siempre.** PS 5.1 lee UTF-8 como ANSI y envía los cuerpos
+  HTTP en ASCII, así que los títulos con tildes llegarían corrompidos a la base.
+  Por eso `migrar-a-supabase.ps1` usa `Get-Content -Encoding UTF8`,
+  `ContentType 'application/json; charset=utf-8'` y manda el cuerpo como bytes
+  UTF-8; y `generar-inventario-opr.ps1` usa `Import-Csv -Encoding UTF8`.
+  Verificado en 5.1 y en 7.6.
 - Node no está instalado → preferir soluciones en PowerShell.
 
 **Código**
@@ -210,7 +219,7 @@ Navegador (index.html + config.js + lib/supabase.js)
    `service_role`, en pwsh 7 y desde la carpeta del proyecto:
 
    ```
-   ./migrar-a-supabase.ps1 -SupabaseUrl "https://armvuvoluoxspfjpefex.supabase.co" -ServiceKey "<service_role eyJ...>" -Inventario "inventario-opr.js" -Tabla "normativos_opr"
+   pwsh -ExecutionPolicy Bypass -File .\migrar-a-supabase.ps1 -SupabaseUrl "https://armvuvoluoxspfjpefex.supabase.co" -ServiceKey "<service_role eyJ...>" -Inventario "inventario-opr.js" -Tabla "normativos_opr"
    ```
 
    ⚠️ **Revisar `-Tabla` antes de pulsar Enter.** Sin `-Anexar`, el script vacía
@@ -247,7 +256,7 @@ Navegador (index.html + config.js + lib/supabase.js)
 
 - Para **regenerar el catálogo** tras agregar PDF a la carpeta fuente:
   `pwsh -c "& ./generar-inventario.ps1"` y luego re-migrar.
-- Para **re-migrar** a Supabase: `./migrar-a-supabase.ps1 -SupabaseUrl "https://armvuvoluoxspfjpefex.supabase.co" -ServiceKey "<service_role eyJ...>"` (pwsh 7).
+- Para **re-migrar** a Supabase: `pwsh -ExecutionPolicy Bypass -File .\migrar-a-supabase.ps1 -SupabaseUrl "https://armvuvoluoxspfjpefex.supabase.co" -ServiceKey "<service_role eyJ...>"`.
   ⚠️ Sin `-Anexar` este script **vacía la tabla** y recarga todo desde cero.
 - Para **agregar un lote nuevo** sin tocar lo ya cargado: `generar-inventario.ps1`
   con `-Origen`, `-Coleccion`, `-Salida` y `-Anexar`, y luego `migrar-a-supabase.ps1`
