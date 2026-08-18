@@ -179,6 +179,18 @@ Navegador (index.html + config.js + lib/supabase.js)
   Las credenciales de GitHub ya están cacheadas (no vuelve a pedir login).
 
 **PowerShell / scripts**
+- ⚠️ **Nombres de parámetro vs. variables internas.** PowerShell **no distingue
+  mayúsculas**: un `param([string]$Inventario)` y un `$inventario = ... | ConvertFrom-Json`
+  son la MISMA variable, y la restricción `[string]` convierte el array en un solo
+  string sin avisar (`.Count` pasa a 1 y los campos quedan vacíos). Ya ocurrió una
+  vez en `migrar-a-supabase.ps1`; la variable interna ahora se llama `$catalogo`.
+  Al agregar parámetros, comprobar que ninguno choque con una variable del cuerpo.
+- **Validar antes de destruir.** El script comprueba que el catálogo tenga filas,
+  que todas traigan `archivo` y que los PDF existan en `documentos/` **antes** de
+  vaciar la tabla. Sin eso, un catálogo mal leído dejaba la tabla vacía y subía 0.
+- **Probar de verdad, no solo la sintaxis.** `Parser::ParseFile` no detectó nada de
+  lo anterior. Para cambios en el migrador, levantar un servidor HTTP local que
+  imite a Supabase y correr el script completo contra él.
 - Ejecutar los `.ps1` con **PowerShell 7 (pwsh)** y `-ExecutionPolicy Bypass`:
   la política de la máquina es `RemoteSigned` y `./script.ps1` a secas falla con
   *"la ejecución de scripts está deshabilitada"*. Forma correcta:

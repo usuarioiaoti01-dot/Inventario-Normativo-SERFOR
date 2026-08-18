@@ -47,9 +47,33 @@ $raw = Get-Content -LiteralPath $invPath -Raw -Encoding UTF8
 $start = $raw.IndexOf('[')
 $end   = $raw.LastIndexOf(']')
 $json  = $raw.Substring($start, $end - $start + 1)
-$inventario = $json | ConvertFrom-Json
-Write-Host ("Catalogo local ({0}): {1} documentos." -f $Inventario, $inventario.Count) -ForegroundColor Cyan
+# OJO: la variable NO puede llamarse $inventario. PowerShell no distingue
+# mayusculas, asi que chocaria con el parametro [string]$Inventario y su
+# restriccion de tipo convertiria el array en UN SOLO string (Count = 1).
+$catalogo = @($json | ConvertFrom-Json)
+Write-Host ("Catalogo local ({0}): {1} documentos." -f $Inventario, $catalogo.Count) -ForegroundColor Cyan
 Write-Host ("Tabla destino: {0}   |   Bucket: {1}" -f $Tabla, $bucket) -ForegroundColor Cyan
+
+# ---- Validar ANTES de borrar nada ----
+# El orden importa: vaciar la tabla y fallar despues dejaria la tabla vacia.
+if($catalogo.Count -eq 0){
+  Write-Error "El catalogo no tiene documentos. No se toca la tabla."; exit 1
+}
+$sinArchivo = @($catalogo | Where-Object { -not $_.archivo }).Count
+if($sinArchivo -gt 0){
+  Write-Error "$sinArchivo fila(s) del catalogo no tienen 'archivo'. No se toca la tabla."; exit 1
+}
+$ausentes = @()
+foreach($d in $catalogo){
+  $rel = ($d.archivo -replace '^documentos/','')
+  if(-not (Test-Path -LiteralPath (Join-Path $here (Join-Path 'documentos' $rel)))){ $ausentes += $rel }
+}
+if($ausentes.Count -gt 0){
+  Write-Host ("Faltan {0} PDF en documentos/ (los {1} primeros):" -f $ausentes.Count, [Math]::Min(5,$ausentes.Count)) -ForegroundColor Yellow
+  $ausentes | Select-Object -First 5 | ForEach-Object { Write-Host "    - $_" -ForegroundColor Yellow }
+  Write-Error "Faltan archivos locales. No se toca la tabla."; exit 1
+}
+Write-Host ("Verificado: los {0} PDF estan en documentos/." -f $catalogo.Count) -ForegroundColor Green
 
 $headers = @{ apikey = $ServiceKey; Authorization = "Bearer $ServiceKey" }
 
@@ -67,7 +91,7 @@ if($Anexar){
 
 # ---- 2. Subir cada PDF + insertar fila ----
 $subidos = 0; $fallidos = 0
-foreach($d in $inventario){
+foreach($d in $catalogo){
   $local = ($d.archivo -replace '^documentos/','')
   $localPath = Join-Path $here (Join-Path 'documentos' $local)
   try {
@@ -95,7 +119,7 @@ foreach($d in $inventario){
       -ContentType 'application/json; charset=utf-8' -Body ([Text.Encoding]::UTF8.GetBytes($row)) | Out-Null
 
     $subidos++
-    if($subidos % 10 -eq 0){ Write-Host ("   ...{0}/{1}" -f $subidos, $inventario.Count) -ForegroundColor DarkGray }
+    if($subidos % 10 -eq 0){ Write-Host ("   ...{0}/{1}" -f $subidos, $catalogo.Count) -ForegroundColor DarkGray }
   } catch {
     $fallidos++
     $detail = $_.Exception.Message
