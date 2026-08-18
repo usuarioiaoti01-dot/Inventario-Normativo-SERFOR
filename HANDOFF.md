@@ -27,15 +27,17 @@ Contacto/admin: `mmontoya@serfor.gob.pe`.
   ver Pendientes).
 - **Asistente IA operativo** con la API de Claude vía Edge Function (probado y
   respondiendo con citas de página en documentos pequeños).
-- **Colecciones (lotes) implementadas:** cada documento tiene un campo `coleccion`
-  y el Inventario muestra una barra de pestañas *Todas | Normativa base | …* cuando
-  hay más de una. Los 122 documentos ya cargados quedan en `Normativa base`.
-  Falta ejecutar `supabase-coleccion.sql` en Supabase para crear el campo.
+- **Un conjunto = una tabla = una pestaña.** La app lee de varias tablas a la vez
+  (registro `FUENTES` en `index.html`) y muestra una barra de pestañas
+  *Todas | Normativa base | Normativos OPR* con el conteo de cada una. Una tabla
+  que aún no exista se omite sin romper nada. Dentro de una tabla, el campo
+  opcional `coleccion` permite subdividir en sublotes (filtro *Toda colección*).
 - **Lote OPR preparado (116 PDF, 148 MB):** 70 normas de SERFOR (47 lineamientos +
   23 directivas), todas vigentes, descargadas en `Documentos Normativos OPR/`,
-  copiadas a `documentos/` con prefijo `opr_` y catalogadas en `inventario-opr.js`
-  con la colección **`Lineamientos y Directivas OPR`**. Ninguna supera los 50 MB.
-  **Falta subirlo a Supabase** (ver Pendientes).
+  copiadas a `documentos/` con prefijo `opr_` y catalogadas en `inventario-opr.js`.
+  Van a su **propia tabla `normativos_opr`** (pestaña "Normativos OPR"), no
+  mezclados con los 122 originales. Ninguna supera los 50 MB.
+  **Falta crear la tabla y subirlo** (ver Pendientes).
 - **Repo en GitHub** actualizado.
 - **Aún NO publicado** en el servidor de SERFOR (paquete listo, ver Pendientes).
 
@@ -93,10 +95,21 @@ Navegador (index.html + config.js + lib/supabase.js)
    para no depender de un CDN externo en el servidor de SERFOR.
 7. **Migración con service_role JWT legacy** (no la clave nueva `sb_secret_`, que da
    401 en las llamadas REST).
-8. **Lotes de normativa = campo `coleccion`**, no fecha de carga: es explícito,
-   no envejece solo y sirve para futuros lotes. La barra de pestañas vive **dentro**
-   de Inventario (no como pestaña principal aparte) para reutilizar buscador,
-   filtros, visor y asistente. Se oculta sola si solo hay una colección.
+8. **Cada conjunto de normativa en su propia tabla** (decisión del usuario), no
+   todo en `documentos` con un campo discriminador. La app lee de varias tablas
+   en paralelo según el registro `FUENTES` de `index.html` y cada una es una
+   pestaña. Consecuencias resueltas:
+   - Los `id` **se repiten** entre tablas (ambas son identity desde 1), así que la
+     clave de selección en el frontend es compuesta: `_key = tabla + ":" + id`.
+   - Los PDF de todas las tablas siguen en el **mismo bucket** `documentos`, de
+     modo que el visor y la Edge Function del asistente **no cambian**.
+   - Cada tabla nueva necesita su SQL (modelo: `supabase-tabla-opr.sql`) y su
+     línea en `FUENTES`. Una tabla inexistente se omite sin romper la app.
+   - El campo `coleccion` sobrevive como **sublote dentro de una tabla**: si una
+     tabla tiene más de uno, aparece el filtro *Toda colección*. Se detecta por
+     tabla, porque una puede tenerlo y otra no.
+   La barra de pestañas vive **dentro** de Inventario (no como pestaña principal
+   aparte) para reutilizar buscador, filtros, visor y asistente.
 9. **Títulos del lote OPR:** salen del índice oficial (denominación + norma de
    aprobación), no del nombre del archivo. Cuando una norma tiene varios PDF
    (resolución + documento + anexo), la parte va **delante** en corchetes
@@ -120,7 +133,8 @@ Navegador (index.html + config.js + lib/supabase.js)
 | `capibara-serfor.png` | Imagen del botón del asistente | ✅ Sí |
 | `supabase/functions/preguntar/index.ts` | Edge Function del asistente (Deno) | ❌ Se despliega en Supabase |
 | `supabase-setup.sql` | Esquema BD + RLS + bucket (ejecutar 1 vez) | ❌ Solo instalación |
-| `supabase-coleccion.sql` | Agrega el campo `coleccion` a una base ya creada (idempotente) | ❌ Solo instalación |
+| `supabase-coleccion.sql` | (Opcional) campo `coleccion` para subdividir una tabla | ❌ Solo instalación |
+| `supabase-tabla-opr.sql` | Crea la tabla `normativos_opr` + RLS. Modelo para futuras tablas | ❌ Solo instalación |
 | `migrar-a-supabase.ps1` | Migra los PDF locales a Supabase (PowerShell) | ❌ Solo migración |
 | `migrar-a-supabase.mjs` | Igual, versión Node (alternativa) | ❌ Solo migración |
 | `generar-inventario.ps1` | Genera el catálogo; con `-Coleccion` / `-Anexar` arma lotes nuevos | ❌ Solo mantenimiento |
@@ -185,26 +199,24 @@ Navegador (index.html + config.js + lib/supabase.js)
 
 ## 8. Pendientes (lo que falta)
 
-0. **Activar las colecciones en la base (bloquea el lote nuevo):** ejecutar
-   `supabase-coleccion.sql` en **Supabase → SQL Editor**. Hasta que se ejecute,
-   la app detecta que la columna no existe y funciona exactamente como antes
-   (sin barra de pestañas y sin el campo Colección en el formulario), así que se
-   puede publicar `index.html` sin riesgo. Lo que **sí** requiere el SQL es cargar
-   un lote nuevo con su propia colección. Después de eso, queda
-   pendiente **decidir de dónde salen los PDF del lote nuevo** (carpeta origen) y
-   cómo se llamará la colección; el procedimiento está en `LEEME.md` →
-   *Agregar un lote nuevo de documentos*.
-0b. **Subir el lote OPR a Supabase** (después del SQL de arriba). Todo lo local ya
-   está hecho; falta un solo comando con la clave `service_role` (pwsh 7, desde la
-   carpeta del proyecto):
+0. **Crear la tabla `normativos_opr`:** ejecutar `supabase-tabla-opr.sql` en
+   **Supabase → SQL Editor → New query → Run**. Es idempotente. Mientras no se
+   ejecute, la app omite esa fuente y funciona exactamente como antes (una sola
+   pestaña, 122 documentos), así que **publicar `index.html` no tiene riesgo**.
+   `supabase-coleccion.sql` es aparte y **opcional**: solo hace falta si se quiere
+   subdividir la tabla `documentos` en sublotes.
+0b. **Subir el lote OPR a su tabla.** Todo lo local ya está hecho (116 PDF en
+   `documentos/` y `inventario-opr.js` generado); falta un comando con la clave
+   `service_role`, en pwsh 7 y desde la carpeta del proyecto:
 
    ```
-   ./migrar-a-supabase.ps1 -SupabaseUrl "https://armvuvoluoxspfjpefex.supabase.co" -ServiceKey "<service_role eyJ...>" -Inventario "inventario-opr.js" -Anexar
+   ./migrar-a-supabase.ps1 -SupabaseUrl "https://armvuvoluoxspfjpefex.supabase.co" -ServiceKey "<service_role eyJ...>" -Inventario "inventario-opr.js" -Tabla "normativos_opr"
    ```
 
-   `-Anexar` es imprescindible: sin él el script **vacía la tabla** y se perderían
-   los 122 documentos ya cargados. Al terminar, la app debe mostrar la barra
-   *Todas | Normativa base | Lineamientos y Directivas OPR* con 122 y 116.
+   ⚠️ **Revisar `-Tabla` antes de pulsar Enter.** Sin `-Anexar`, el script vacía
+   la tabla destino; si por error dice `documentos`, se pierden los 122 originales.
+   Al terminar, la app debe mostrar *Todas 238 | Normativa base 122 |
+   Normativos OPR 116*.
 1. **Redesplegar la Edge Function `preguntar`** con la última versión de
    `index.ts` (incluye el mensaje "DOCUMENTO GRANDE…" para PDF de +100 páginas) y
    **probar** con el reglamento grande (215 páginas) y con una directiva pequeña.

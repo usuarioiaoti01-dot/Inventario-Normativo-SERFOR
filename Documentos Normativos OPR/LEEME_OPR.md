@@ -46,21 +46,25 @@ política de red del sandbox), por lo que no fue posible descargarlos automátic
 
 ## Incorporarlos a la aplicación web
 
-Estas normas entran al inventario web como una **colección aparte** (`Lineamientos y Directivas OPR`),
-de modo que quedan diferenciadas de los 122 documentos ya migrados: el Inventario
-muestra una barra de pestañas *Todas | Normativa base | Lineamientos y Directivas OPR*.
+Estas normas entran al inventario web en su **propia tabla** (`normativos_opr`), no
+mezcladas con los 122 documentos ya migrados. El Inventario muestra una barra de
+pestañas *Todas | Normativa base | Normativos OPR*. Los PDF van al mismo bucket
+privado `documentos`, así que el visor y el asistente IA funcionan sin cambios.
 
 Después de descargar los PDF con el paso anterior:
 
 ```powershell
-# 1) Una sola vez: crear el campo 'coleccion' en Supabase
-#    (SQL Editor -> pegar supabase-coleccion.sql -> Run)
+# 1) Una sola vez: crear la tabla en Supabase
+#    (SQL Editor -> pegar supabase-tabla-opr.sql -> Run)
 
 # 2) Armar el catalogo del lote a partir del indice
 pwsh -ExecutionPolicy Bypass -File .\generar-inventario-opr.ps1
 
-# 3) Subir SOLO este lote, sin tocar lo ya cargado
-./migrar-a-supabase.ps1 -SupabaseUrl "https://armvuvoluoxspfjpefex.supabase.co" -ServiceKey "<service_role>" -Inventario "inventario-opr.js" -Anexar
+# 3) Subir este lote A SU TABLA
+./migrar-a-supabase.ps1 -SupabaseUrl "https://armvuvoluoxspfjpefex.supabase.co" -ServiceKey "<service_role>" -Inventario "inventario-opr.js" -Tabla "normativos_opr"
 ```
 
-El detalle está en `LEEME.md` → *Agregar un lote nuevo de documentos*.
+Cuidado con `-Tabla`: sin `-Anexar` el script **vacia la tabla destino** antes de
+cargar. Si se apunta por error a `documentos`, se borran los 122 originales.
+
+El detalle esta en `LEEME.md` -> *Agregar un conjunto nuevo de documentos*.

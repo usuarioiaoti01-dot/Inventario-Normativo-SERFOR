@@ -16,8 +16,12 @@
 #  Se puede volver a ejecutar sin problema: reconstruye el catalogo desde cero
 #  y sobrescribe en documentos/ solo los PDF de este lote (prefijo opr_).
 # ============================================================
+#  La pestaña del inventario la define la TABLA (normativos_opr -> "Normativos OPR"),
+#  no este parametro. -Coleccion sirve para subdividir dentro de esa tabla: si se le
+#  da un valor distinto al de la tabla, aparece como filtro "Toda coleccion" y en la
+#  ficha del documento. Por defecto coincide, para no rotular dos veces lo mismo.
 param(
-  [string]$Coleccion = "Lineamientos y Directivas OPR",
+  [string]$Coleccion = "Normativos OPR",
   [string]$Salida    = "inventario-opr.js"
 )
 

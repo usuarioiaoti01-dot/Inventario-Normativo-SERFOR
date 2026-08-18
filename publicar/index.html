@@ -238,6 +238,7 @@
       <select class="filter" id="fTipo"><option value="">Todo tipo</option></select>
       <select class="filter" id="fEnt"><option value="">Toda entidad</option></select>
       <select class="filter" id="fYear"><option value="">Todos los años</option></select>
+      <select class="filter" id="fCol" hidden><option value="">Toda colección</option></select>
       <span class="count-pill" id="countPill"></span>
     </div>
     <div class="workspace">
@@ -299,11 +300,16 @@
               <label for="uEstado">Estado</label>
               <select id="uEstado"><option>Vigente</option><option>Modificada</option><option>Derogada</option></select>
             </div>
+            <div class="field full" id="campoFuente" hidden>
+              <label for="uFuente">Guardar en</label>
+              <select id="uFuente"></select>
+              <p class="hint" style="margin:6px 0 0">Cada conjunto de normas vive en su propia tabla y aparece como una pestaña del inventario.</p>
+            </div>
             <div class="field full" id="campoCol" hidden>
               <label for="uCol">Colección</label>
-              <input id="uCol" list="colList" placeholder="Normativa base" autocomplete="off">
+              <input id="uCol" list="colList" placeholder="(opcional)" autocomplete="off">
               <datalist id="colList"></datalist>
-              <p class="hint" style="margin:6px 0 0">Agrupa el documento en una pestaña del inventario. Elige una existente o escribe una nueva. Si lo dejas vacío, entra en «Normativa base».</p>
+              <p class="hint" style="margin:6px 0 0">Sublote dentro de la tabla elegida; sirve para filtrar. Si lo dejas vacío, toma el nombre de la tabla.</p>
             </div>
             <div class="field full">
               <label>Archivo PDF *</label>
@@ -365,10 +371,20 @@
   const esc = s => (s==null?"":String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const stCls = s => s==="Derogada"?"der":s==="Modificada"?"mod":"vig";
 
-  let sb = null, INVENTARIO = [], isAdmin = false, currentUser = null, COLS = [];
-  let HAY_COLECCION = false;   // la base ya tiene la columna 'coleccion' (ver supabase-coleccion.sql)
+  let sb = null, INVENTARIO = [], isAdmin = false, currentUser = null;
+  let GRUPOS = [];             // fuentes que respondieron (las tablas que existen)
+  const COL_OK = {};           // por tabla: si tiene la columna 'coleccion' (ver supabase-coleccion.sql)
+  // Fuentes de datos: cada tabla de Supabase es una pestaña del inventario.
+  // Para sumar otro conjunto: crear su tabla (ver supabase-tabla-opr.sql como
+  // modelo) y agregar aquí una línea. Los PDF de todas las fuentes viven en el
+  // mismo bucket 'documentos', así que el visor y el asistente no cambian.
+  const FUENTES = [
+    { tabla:"documentos",     nombre:"Normativa base" },
+    { tabla:"normativos_opr", nombre:"Normativos OPR" }
+  ];
   const COL_BASE = "Normativa base";   // coleccion de los documentos ya cargados
-  const state = { q:"", tipo:"", ent:"", year:"", col:"", active:null };   // col:"" = todas
+  // grupo:"" = todas las fuentes  |  col:"" = todas las colecciones de la fuente activa
+  const state = { q:"", tipo:"", ent:"", year:"", grupo:"", col:"", active:null };
 
   // ---------- Arranque ----------
   function boot(){
@@ -410,38 +426,65 @@
     await loadDocs();
   }
 
-  // ---------- Cargar documentos desde la base ----------
+  // ---------- Cargar documentos desde todas las fuentes ----------
+  // Una tabla que todavia no existe no rompe la app: se omite esa fuente.
+  const noExiste = e => e && (e.code === '42P01' || /does not exist|Could not find the table/i.test(e.message||''));
+
   async function loadDocs(){
-    const { data, error } = await sb.from('documentos').select('*');
-    if(error){ document.getElementById('listPane').innerHTML = `<div class="empty">Error al cargar: ${esc(error.message)}</div>`; return; }
-    INVENTARIO = data || [];
-    // Si la base todavia no tiene la columna, la app funciona igual pero sin colecciones
-    HAY_COLECCION = INVENTARIO.length > 0 && Object.prototype.hasOwnProperty.call(INVENTARIO[0], 'coleccion');
-    document.getElementById('campoCol').hidden = !HAY_COLECCION;
-    buildColTabs(); buildColList(); buildFilters(); render();
+    const pane = document.getElementById('listPane');
+    pane.innerHTML = `<div class="empty">Cargando documentos…</div>`;
+
+    const res = await Promise.all(FUENTES.map(f =>
+      sb.from(f.tabla).select('*').then(r => ({ f, ...r }))
+    ));
+
+    const fallos = [];
+    INVENTARIO = []; GRUPOS = [];
+    for(const r of res){
+      if(r.error){
+        if(!noExiste(r.error)) fallos.push(`${r.f.nombre}: ${r.error.message}`);
+        continue;   // tabla inexistente = fuente aun no creada
+      }
+      GRUPOS.push(r.f.nombre);
+      // La columna 'coleccion' puede existir en una tabla y no en otra
+      COL_OK[r.f.tabla] = (r.data||[]).length > 0 && Object.prototype.hasOwnProperty.call(r.data[0], 'coleccion');
+      // id se repite entre tablas: la clave de seleccion es tabla + id
+      for(const d of (r.data || [])){
+        INVENTARIO.push({ ...d, _tabla:r.f.tabla, _grupo:r.f.nombre, _key:`${r.f.tabla}:${d.id}` });
+      }
+    }
+
+    if(!INVENTARIO.length && fallos.length){
+      pane.innerHTML = `<div class="empty">Error al cargar: ${esc(fallos.join(' | '))}</div>`; return;
+    }
+    if(fallos.length) console.warn('Fuentes con error:', fallos.join(' | '));
+
+    buildFuenteSelect(); buildColTabs(); buildColList(); buildFilters(); render();
   }
 
-  // Colecciones presentes, con la base siempre primero y el resto alfabetico
-  function colecciones(){
-    const cs = [...new Set(INVENTARIO.map(d=>d.coleccion||COL_BASE))];
+  // Colecciones (sublotes) presentes dentro de un ambito dado
+  function colecciones(items){
+    const cs = [...new Set((items||INVENTARIO).map(d=>d.coleccion).filter(Boolean))];
     return cs.sort((a,b)=> a===COL_BASE?-1 : b===COL_BASE?1 : a.localeCompare(b,'es'));
   }
 
-  // La barra solo aparece cuando hay mas de una coleccion que diferenciar
+  // La barra de pestañas es una por fuente (tabla). Solo aparece si hay mas de una.
   function buildColTabs(){
-    const cs = colecciones();
     const bar = document.getElementById('collTabs');
-    if(!HAY_COLECCION || cs.length < 2){ bar.hidden = true; bar.innerHTML = ''; state.col = ""; return; }
-    if(state.col && !cs.includes(state.col)) state.col = "";
-    const cuenta = c => INVENTARIO.filter(d=>(d.coleccion||COL_BASE)===c).length;
+    if(GRUPOS.length < 2){ bar.hidden = true; bar.innerHTML = ''; state.grupo = ""; return; }
+    if(state.grupo && !GRUPOS.includes(state.grupo)) state.grupo = "";
+    const cuenta = g => INVENTARIO.filter(d=>d._grupo===g).length;
     bar.hidden = false;
-    // Se referencian por indice: los nombres vienen de la base y pueden traer comillas
-    COLS = cs;
+    // Se referencian por indice: los rotulos pueden traer comillas
     bar.innerHTML =
-      `<button class="${state.col===''?'on':''}" onclick="setCol(-1)">Todas<i>${INVENTARIO.length}</i></button>` +
-      cs.map((c,i)=>`<button class="${state.col===c?'on':''}" onclick="setCol(${i})">${esc(c)}<i>${cuenta(c)}</i></button>`).join('');
+      `<button class="${state.grupo===''?'on':''}" onclick="setGrupo(-1)">Todas<i>${INVENTARIO.length}</i></button>` +
+      GRUPOS.map((g,i)=>`<button class="${state.grupo===g?'on':''}" onclick="setGrupo(${i})">${esc(g)}<i>${cuenta(g)}</i></button>`).join('');
   }
-  function setCol(i){ state.col = i<0 ? "" : (COLS[i]||""); buildColTabs(); render(); }
+  function setGrupo(i){
+    state.grupo = i<0 ? "" : (GRUPOS[i]||"");
+    state.col = "";                     // la coleccion pertenece a la fuente anterior
+    buildColTabs(); buildFilters(); render();
+  }
 
   // Sugerir en el formulario las colecciones que ya existen
   function buildColList(){
@@ -449,11 +492,33 @@
       colecciones().map(c=>`<option value="${esc(c)}">`).join('');
   }
 
+  // Selector de tabla destino en el formulario de carga
+  function buildFuenteSelect(){
+    const el = document.getElementById('uFuente');
+    const disponibles = FUENTES.filter(f=>GRUPOS.includes(f.nombre));
+    el.innerHTML = disponibles.map(f=>`<option value="${esc(f.tabla)}">${esc(f.nombre)}</option>`).join('');
+    document.getElementById('campoFuente').hidden = disponibles.length < 2;
+    el.onchange = sincronizarCampoCol;
+    sincronizarCampoCol();
+  }
+  // Solo se ofrece Coleccion si la tabla destino tiene esa columna
+  function sincronizarCampoCol(){
+    const t = document.getElementById('uFuente').value;
+    document.getElementById('campoCol').hidden = !COL_OK[t];
+  }
+
   function buildFilters(){
-    const tipos = [...new Set(INVENTARIO.map(d=>d.tipo).filter(Boolean))].sort((a,b)=>(ORDEN.indexOf(a)-ORDEN.indexOf(b)));
-    const ents  = [...new Set(INVENTARIO.map(d=>d.entidad).filter(Boolean))].sort();
-    const years = [...new Set(INVENTARIO.map(d=>d.anio).filter(Boolean))].sort((a,b)=>b-a);
+    const ambito = state.grupo ? INVENTARIO.filter(d=>d._grupo===state.grupo) : INVENTARIO;
+    const tipos = [...new Set(ambito.map(d=>d.tipo).filter(Boolean))].sort((a,b)=>(ORDEN.indexOf(a)-ORDEN.indexOf(b)));
+    const ents  = [...new Set(ambito.map(d=>d.entidad).filter(Boolean))].sort();
+    const years = [...new Set(ambito.map(d=>d.anio).filter(Boolean))].sort((a,b)=>b-a);
     fill('fTipo','Todo tipo',tipos); fill('fEnt','Toda entidad',ents); fill('fYear','Todos los años',years);
+
+    // La coleccion es un sublote dentro de la fuente: solo se ofrece si hay mas de uno
+    const cols = colecciones(ambito);
+    fill('fCol','Toda colección',cols);
+    document.getElementById('fCol').hidden = cols.length < 2;
+    if(state.col && !cols.includes(state.col)){ state.col = ""; document.getElementById('fCol').value = ""; }
   }
   function fill(id, first, arr){
     const el = document.getElementById(id); const cur = el.value;
@@ -464,7 +529,8 @@
   function filtered(){
     const q = state.q.toLowerCase();
     return INVENTARIO.filter(d=>{
-      if(state.col && (d.coleccion||COL_BASE)!==state.col) return false;
+      if(state.grupo && d._grupo!==state.grupo) return false;
+      if(state.col && d.coleccion!==state.col) return false;
       if(state.tipo && d.tipo!==state.tipo) return false;
       if(state.ent && d.entidad!==state.ent) return false;
       if(state.year && String(d.anio)!==state.year) return false;
@@ -475,7 +541,7 @@
 
   function render(){
     const items = filtered();
-    const universo = state.col ? INVENTARIO.filter(d=>(d.coleccion||COL_BASE)===state.col).length : INVENTARIO.length;
+    const universo = state.grupo ? INVENTARIO.filter(d=>d._grupo===state.grupo).length : INVENTARIO.length;
     document.getElementById('countPill').textContent = `${items.length} de ${universo}`;
     const pane = document.getElementById('listPane');
     if(!items.length){ pane.innerHTML=`<div class="empty">Sin resultados.</div>`; return; }
@@ -487,7 +553,7 @@
       html += `<div class="group-head">${esc(tp)}<span>${arr.length}</span></div>`;
       arr.forEach(d=>{
         const cls = TIPOCLS[d.tipo]||"--brand";
-        html += `<div class="row ${state.active===d.id?'active':''}" onclick="select(${d.id})">
+        html += `<div class="row ${state.active===d._key?'active':''}" onclick="select('${d._key}')">
           <div class="doc-ico"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
           <div class="row-main">
             <div class="name" title="${esc(d.titulo)}">${esc(d.titulo)}</div>
@@ -500,15 +566,15 @@
     pane.innerHTML = html;
   }
 
-  async function select(id){
-    const d = INVENTARIO.find(x=>x.id===id); if(!d) return;
-    state.active = id; render();
+  async function select(key){
+    const d = INVENTARIO.find(x=>x._key===key); if(!d) return;
+    state.active = key; render();
     resetChat(d);
     document.getElementById('docEmpty').hidden = true;
     const head = document.getElementById('docHead');
     head.hidden = false;
     head.innerHTML = `
-      <div class="sub">${esc(d.tipo)} · ${esc(d.entidad||'')}${d.anio?` · ${d.anio}`:''}${d.coleccion&&d.coleccion!==COL_BASE?` · ${esc(d.coleccion)}`:''}</div>
+      <div class="sub">${esc(d.tipo)} · ${esc(d.entidad||'')}${d.anio?` · ${d.anio}`:''}${GRUPOS.length>1?` · ${esc(d._grupo)}`:''}${d.coleccion&&d.coleccion!==d._grupo?` · ${esc(d.coleccion)}`:''}</div>
       <h2>${esc(d.titulo)}</h2>
       <div class="metas">
         <span class="badge ${stCls(d.estado)}">${esc(d.estado||'Vigente')}</span>
@@ -655,8 +721,12 @@
       kb: Math.round(file.size/1024),
       archivo: path, original: file.name, created_by: currentUser.id
     };
-    if(HAY_COLECCION) row.coleccion = document.getElementById('uCol').value.trim() || COL_BASE;
-    const ins = await sb.from('documentos').insert(row);
+    // Tabla destino: la elegida, o la primera disponible si el selector esta oculto
+    const selFuente = document.getElementById('uFuente');
+    const tabla = selFuente.value || (FUENTES[0] && FUENTES[0].tabla) || 'documentos';
+    const nombreFuente = (FUENTES.find(f=>f.tabla===tabla)||{}).nombre || COL_BASE;
+    if(COL_OK[tabla]) row.coleccion = document.getElementById('uCol').value.trim() || nombreFuente;
+    const ins = await sb.from(tabla).insert(row);
     if(ins.error){
       await sb.storage.from('documentos').remove([path]); // revertir archivo huérfano
       msg.className='form-msg err'; msg.textContent='Error al registrar: '+ins.error.message;
@@ -677,6 +747,7 @@
     if(next) document.documentElement.setAttribute('data-theme',next); else document.documentElement.removeAttribute('data-theme');
   };
   document.getElementById('q').oninput = e=>{ state.q=e.target.value; render(); };
+  document.getElementById('fCol').onchange = e=>{ state.col=e.target.value; render(); };
   document.getElementById('fTipo').onchange = e=>{ state.tipo=e.target.value; render(); };
   document.getElementById('fEnt').onchange  = e=>{ state.ent=e.target.value; render(); };
   document.getElementById('fYear').onchange = e=>{ state.year=e.target.value; render(); };

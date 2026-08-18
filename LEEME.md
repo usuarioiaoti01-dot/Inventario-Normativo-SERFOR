@@ -11,7 +11,8 @@ inventario-normativo/
 ├── index.html               ← la aplicación (login, inventario, nuevos registros)
 ├── config.js                ← tus credenciales de Supabase (URL + clave anon)
 ├── supabase-setup.sql       ← esquema de base de datos + seguridad (ejecutar 1 vez)
-├── supabase-coleccion.sql   ← agrega el campo 'coleccion' a una base ya creada
+├── supabase-coleccion.sql   ← (opcional) campo 'coleccion' para subdividir una tabla
+├── supabase-tabla-opr.sql   ← crea la tabla normativos_opr (modelo para nuevas tablas)
 ├── migrar-a-supabase.mjs    ← sube los 123 PDF actuales a Supabase (Node 18+)
 ├── generar-inventario.ps1   ← genera el catalogo (soporta lotes con -Coleccion / -Anexar)
 ├── inventario.js            ← catálogo local (solo se usa para la migración inicial)
@@ -78,57 +79,94 @@ Al terminar, tendrás los 123 PDF y su metadata en Supabase.
 - **Consultar:** buscar, filtrar por tipo/entidad/año y ver el PDF incrustado.
 - **Nuevos registros** (solo administradores): pestaña para subir un PDF nuevo con
   sus datos; queda guardado en la base y visible para todos al instante.
-- **Colecciones:** cada documento pertenece a una colección (por defecto
-  `Normativa base`, que es el lote de los 122 documentos originales). Cuando hay
-  más de una, el Inventario muestra arriba una barra de pestañas
-  — *Todas | Normativa base | …* — con el conteo de cada una. La pestaña filtra
-  la lista y se combina con el buscador y los filtros de tipo/entidad/año.
-  Si solo existe una colección, la barra no aparece.
+- **Pestañas por conjunto:** cada tabla de normativa es una pestaña sobre el
+  buscador — *Todas | Normativa base | Normativos OPR* — con su conteo. Filtra la
+  lista y se combina con el buscador y los filtros de tipo/entidad/año. Si solo
+  hay una tabla, la barra no aparece.
 
 ---
 
-## Agregar un lote nuevo de documentos
+## Agregar un conjunto nuevo de documentos
 
-Un "lote" es una colección: sirve para distinguir la normativa que se incorpora
-después de la carga inicial, sin mezclarla con los 122 documentos originales.
+Cada **conjunto** de normativa vive en **su propia tabla** de Supabase y aparece
+como una **pestaña** del Inventario. Hoy hay dos:
 
-**Paso 0 (una sola vez).** Si la base aún no tiene el campo `coleccion`, abre
-**Supabase → SQL Editor → New query**, pega el contenido de
-`supabase-coleccion.sql` y pulsa **Run**. Es idempotente: se puede repetir sin
-daño. Los documentos ya cargados quedan en `Normativa base`.
+| Pestaña | Tabla | Contenido |
+|---|---|---|
+| Normativa base | `documentos` | los 122 documentos de la carga inicial |
+| Normativos OPR | `normativos_opr` | 116 PDF (70 lineamientos y directivas de OPR) |
 
-**Opción A — pocos documentos: desde la propia app.**
-Entra como administrador → pestaña **Nuevos registros** → completa los datos y,
-en el campo **Colección**, elige una existente de la lista o escribe el nombre del
-lote nuevo (p. ej. `Normativa 2026`). En blanco = `Normativa base`.
+Los PDF de **todas** las tablas se guardan en el mismo bucket privado
+`documentos`, así que el visor y el asistente IA funcionan igual en cualquier
+pestaña, sin cambios.
 
-**Opción B — lote masivo: por PowerShell 7 (`pwsh`).**
+Dentro de una tabla, el campo opcional **`coleccion`** permite subdividir en
+sublotes: si una tabla tiene más de uno, aparece el filtro *Toda colección* en la
+barra de herramientas. Para eso sirve `supabase-coleccion.sql` (opcional).
 
-1. Generar el catálogo del lote y copiar sus PDF a `documentos/` sin borrar nada:
+### Crear una tabla nueva (un conjunto aparte)
+
+1. **En Supabase.** Abre **SQL Editor → New query**, copia
+   `supabase-tabla-opr.sql` y adapta el nombre de la tabla (usa minúsculas y
+   guion bajo: `normativos_opr`, `normativa_2026`…). Pulsa **Run**.
+   El script crea la tabla, sus índices y las mismas reglas de seguridad que
+   `documentos`: leen todos los autenticados, solo los administradores escriben.
+
+2. **En la app.** Añade una línea al registro `FUENTES`, cerca del inicio del
+   `<script>` de `index.html`:
+
+   ```js
+   const FUENTES = [
+     { tabla:"documentos",     nombre:"Normativa base" },
+     { tabla:"normativos_opr", nombre:"Normativos OPR" },
+     { tabla:"normativa_2026", nombre:"Normativa 2026" }   // <- la nueva
+   ];
+   ```
+
+   El rótulo `nombre` es el que se ve en la pestaña. Una tabla que todavía no
+   exista simplemente se omite: la app no se rompe.
+
+3. **Carga los documentos** con cualquiera de las dos vías de abajo, indicando la
+   tabla destino.
+
+### Vía A — pocos documentos: desde la app
+
+Entra como administrador → pestaña **Nuevos registros**. Si hay más de una tabla,
+aparece el selector **Guardar en** para elegir el destino. El campo **Colección**
+solo se muestra si esa tabla tiene la columna.
+
+### Vía B — lote masivo: por PowerShell 7 (`pwsh`)
+
+1. Generar el catálogo y copiar los PDF a `documentos/` sin borrar nada:
 
    ```
-   pwsh -c "& ./generar-inventario.ps1 -Origen 'C:\ruta\de\los\PDF nuevos' -Coleccion 'Normativa 2026' -Salida 'inventario-2026.js' -Anexar"
-uta\de\los\PDF nuevos' -Coleccion 'Normativa 2026' -Salida 'inventario-2026.js' -Anexar"
+   pwsh -c "& ./generar-inventario.ps1 -Origen 'RUTA_DE_LOS_PDF' -Coleccion 'Normativa 2026' -Salida 'inventario-2026.js' -Anexar"
    ```
 
-   `-Anexar` conserva los documentos ya presentes y **omite** los PDF cuyo
-   contenido ya esté en `documentos/` (compara por hash), así que se puede
-   repetir sin duplicar. Si no hay nada nuevo, no pisa el catálogo anterior.
+   `-Anexar` conserva lo que ya está y **omite** los PDF cuyo contenido ya se
+   encuentre en `documentos/` (compara por hash), así que se puede repetir sin
+   duplicar. Si no hay nada nuevo, no pisa el catálogo anterior.
 
-2. Subir solo ese lote a Supabase, sin tocar lo ya cargado:
+   > Para el lote OPR el generador es otro: `generar-inventario-opr.ps1`, que toma
+   > la metadata del índice oficial en vez de deducirla del nombre del archivo.
+
+2. Subir ese catálogo **a su tabla**:
 
    ```
-   pwsh -c "& ./migrar-a-supabase.ps1 -SupabaseUrl 'https://armvuvoluoxspfjpefex.supabase.co' -ServiceKey '<service_role eyJ...>' -Inventario 'inventario-2026.js' -Anexar"
+   pwsh -c "& ./migrar-a-supabase.ps1 -SupabaseUrl 'https://armvuvoluoxspfjpefex.supabase.co' -ServiceKey '<service_role eyJ...>' -Inventario 'inventario-2026.js' -Tabla 'normativa_2026'"
    ```
 
-   `-Anexar` es lo importante: **sin** ese conmutador el script vacía la tabla y
-   vuelve a cargar todo desde cero. Con `-Coleccion 'Otro nombre'` se puede forzar
-   la colección de todas las filas del catálogo.
+   ⚠️ **Cuidado con `-Tabla`.** El script **vacía la tabla destino** antes de
+   cargar, para dejarla igual al catálogo. Si te equivocas de nombre y apuntas a
+   `documentos`, borras los 122 documentos originales. Añade **`-Anexar`** si lo
+   que quieres es *sumar* filas a una tabla que ya tiene contenido.
 
-3. Recarga la app: la barra de pestañas aparece sola con el lote nuevo.
+3. Recarga la app: la pestaña aparece sola con su conteo.
 
 > Límite del plan gratuito de Supabase: **50 MB por archivo**. Los PDF que lo
 > superen fallan en la subida y quedan listados como `[fallo]` al final del script.
+
+---
 
 ### Dar acceso a más usuarios (compartir)
 1. Publica la página (ver abajo) y comparte la URL.
