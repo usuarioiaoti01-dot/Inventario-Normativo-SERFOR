@@ -88,7 +88,7 @@
   select.filter:focus{outline:2px solid var(--brand);outline-offset:1px}
   .count-pill{font-size:.8rem;color:var(--ink-soft);margin-left:auto;font-variant-numeric:tabular-nums}
 
-  .workspace{display:grid;grid-template-columns:1.25fr 1fr;flex:1;min-height:0}
+  .workspace{display:grid;grid-template-columns:0.6fr 1.4fr;flex:1;min-height:0}
   @media (max-width:900px){.workspace{grid-template-columns:1fr}}
 
   .list-pane{overflow-y:auto;border-right:1px solid var(--line);min-height:0}
@@ -109,6 +109,35 @@
 
   .detail-pane{display:flex;flex-direction:column;background:var(--surface-2);min-height:0}
   .pane-head{display:flex;align-items:center;gap:8px;padding:13px 16px;border-bottom:1px solid var(--line);background:var(--brand-tint);color:var(--brand);font-size:.85rem;font-weight:700;flex:none}
+  /* Botón flotante "Consulta Contenido" */
+  .fab{position:fixed;right:22px;bottom:22px;z-index:60;display:flex;align-items:center;gap:10px;padding:8px 18px 8px 8px;border:0;border-radius:40px;background:linear-gradient(135deg,#e8912e,#c96f1a);color:#fff;font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer;box-shadow:0 8px 22px rgba(0,0,0,.3)}
+  .fab:hover{filter:brightness(1.06)}
+  .fab img{width:46px;height:46px;border-radius:50%;background:#fff;object-fit:cover;flex:none}
+  @media (max-width:560px){.fab span{display:none}.fab{padding:6px;border-radius:50%}}
+  /* Panel de chat flotante */
+  .chat-panel{position:fixed;right:22px;bottom:88px;z-index:60;width:390px;max-width:calc(100vw - 44px);height:min(580px,calc(100vh - 130px));background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.32);display:flex;flex-direction:column;overflow:hidden}
+  .chat-panel-head{display:flex;align-items:center;gap:10px;padding:12px 14px;background:linear-gradient(135deg,#e8912e,#c96f1a);color:#fff;flex:none}
+  .chat-panel-head img{width:40px;height:40px;border-radius:50%;background:#fff;object-fit:cover;flex:none}
+  .chat-panel-head .cph-txt{display:flex;flex-direction:column;line-height:1.25;flex:1;min-width:0}
+  .chat-panel-head .cph-txt b{font-size:.94rem}
+  .chat-panel-head .cph-txt span{font-size:.72rem;opacity:.92;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .chat-close{background:rgba(255,255,255,.22);border:0;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:.9rem;flex:none}
+  .chat-log{flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+  .chat-empty{margin:auto;text-align:center;color:var(--ink-faint);font-size:.86rem;max-width:280px}
+  .msg{max-width:88%;padding:10px 13px;border-radius:12px;font-size:.86rem;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+  .msg.me{background:var(--brand);color:#fff;align-self:flex-end;border-bottom-right-radius:3px}
+  .msg.bot{background:var(--surface);border:1px solid var(--line);align-self:flex-start;border-bottom-left-radius:3px}
+  .msg.err{background:var(--stop-bg);color:var(--stop);align-self:flex-start;font-size:.82rem}
+  .msg .cites{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+  .msg .cite{font-size:.7rem;font-weight:700;background:var(--brand-tint);color:var(--brand);padding:2px 8px;border-radius:20px}
+  .msg.think{color:var(--ink-faint);font-style:italic}
+  .chat-input{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line);background:var(--surface);flex:none}
+  .chat-input input{flex:1;padding:10px 12px;border:1px solid var(--line-strong);border-radius:20px;background:var(--bg);color:var(--ink);font-size:.86rem}
+  .chat-input input:focus{outline:2px solid var(--brand);outline-offset:1px}
+  .chat-input input:disabled{opacity:.6}
+  .chat-input button{flex:none;width:40px;border-radius:50%;border:0;background:var(--brand);color:#fff;cursor:pointer;font-size:1rem}
+  .chat-input button:disabled{opacity:.5;cursor:default}
+  .chat-disclaimer{font-size:.68rem;color:var(--ink-faint);text-align:center;padding:0 12px 10px}
   .pane-body{flex:1;min-height:0;display:flex;flex-direction:column}
   .viewer-empty{display:grid;place-items:center;height:100%;color:var(--ink-faint);text-align:center;padding:30px}
   .doc-head{padding:16px 22px;border-bottom:1px solid var(--line);background:var(--surface);flex:none}
@@ -278,6 +307,31 @@
       </div>
     </div>
   </div>
+
+  <!-- Asistente IA flotante -->
+  <button id="fab" class="fab" onclick="toggleChat()" title="Consulta el contenido del documento con IA">
+    <img src="capibara-serfor.png" alt="" onerror="this.style.display='none'">
+    <span>Consulta Contenido</span>
+  </button>
+
+  <div id="chatPanel" class="chat-panel" hidden>
+    <div class="chat-panel-head">
+      <img src="capibara-serfor.png" alt="" onerror="this.style.display='none'">
+      <div class="cph-txt">
+        <b>Consulta Contenido</b>
+        <span id="chatScope">Selecciona un documento</span>
+      </div>
+      <button class="chat-close" onclick="toggleChat()" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="chat-log" id="chatLog">
+      <div class="chat-empty">Elige una directiva y hazme preguntas sobre su contenido. Responderé citando el documento.</div>
+    </div>
+    <div class="chat-input">
+      <input id="chatQ" placeholder="Pregunta sobre este documento…" autocomplete="off" disabled onkeydown="if(event.key==='Enter')askAI()">
+      <button id="chatSend" onclick="askAI()" disabled aria-label="Enviar">➤</button>
+    </div>
+    <div class="chat-disclaimer">Respuestas por IA (Claude Haiku 4.5). Verifica contra el documento oficial.</div>
+  </div>
 </div>
 
 <script src="config.js"></script>
@@ -397,6 +451,7 @@
   async function select(id){
     const d = INVENTARIO.find(x=>x.id===id); if(!d) return;
     state.active = id; render();
+    resetChat(d);
     document.getElementById('docEmpty').hidden = true;
     const head = document.getElementById('docHead');
     head.hidden = false;
@@ -431,6 +486,82 @@
     document.getElementById('viewNew').hidden = inv;
     document.getElementById('navInv').classList.toggle('on', inv);
     document.getElementById('navNew').classList.toggle('on', !inv);
+  }
+
+  // ---------- Asistente IA flotante ----------
+  function toggleChat(){
+    const panel = document.getElementById('chatPanel');
+    panel.hidden = !panel.hidden;
+    if(!panel.hidden && !document.getElementById('chatQ').disabled) document.getElementById('chatQ').focus();
+  }
+
+  let chatDoc = null;  // documento activo para el chat
+  function resetChat(d){
+    chatDoc = d;
+    document.getElementById('chatScope').textContent = d.titulo;
+    document.getElementById('chatLog').innerHTML =
+      `<div class="chat-empty">Hazme preguntas sobre <b>${esc(d.titulo)}</b>. Responderé citando el documento.</div>`;
+    document.getElementById('chatQ').disabled = false;
+    document.getElementById('chatSend').disabled = false;
+    document.getElementById('chatQ').placeholder = 'Pregunta sobre este documento…';
+  }
+
+  function addMsg(cls, html){
+    const log = document.getElementById('chatLog');
+    const empty = log.querySelector('.chat-empty'); if(empty) empty.remove();
+    const el = document.createElement('div');
+    el.className = 'msg ' + cls;
+    el.innerHTML = html;
+    log.appendChild(el);
+    log.scrollTop = log.scrollHeight;
+    return el;
+  }
+
+  async function askAI(){
+    if(!chatDoc) return;
+    const input = document.getElementById('chatQ');
+    const pregunta = input.value.trim();
+    if(!pregunta) return;
+    input.value = '';
+    const send = document.getElementById('chatSend');
+    input.disabled = true; send.disabled = true;
+    addMsg('me', esc(pregunta));
+    const pending = addMsg('bot think', 'Consultando el documento…');
+
+    try {
+      const { data, error } = await sb.functions.invoke('preguntar', {
+        body: { archivo: chatDoc.archivo, pregunta }
+      });
+      if(error) throw error;
+      if(data && data.error) throw new Error(data.error);
+
+      pending.classList.remove('think');
+      let html = esc(data.respuesta || 'Sin respuesta.');
+      if(data.paginas && data.paginas.length){
+        html += `<div class="cites">` + data.paginas.map(p=>`<span class="cite">pág. ${p}</span>`).join('') + `</div>`;
+      }
+      pending.innerHTML = html;
+    } catch(e){
+      pending.className = 'msg err';
+      let msg = (e && e.message) ? e.message : String(e);
+      // Intentar leer el detalle real que devolvió la función
+      try {
+        if(e && e.context && typeof e.context.json === 'function'){
+          const body = await e.context.json();
+          if(body && body.error) msg = body.error;
+        }
+      } catch(_) {}
+      // Mensajes amigables para casos conocidos
+      if(/100 PDF pages/i.test(msg)) msg = 'Este documento tiene demasiadas páginas para el visor de IA y no se pudo procesar automáticamente.';
+      else if(/too large|22 MB|413/i.test(msg)) msg = 'El documento es demasiado grande para el asistente.';
+      else if(/prompt is too long|context|maximum.*tokens/i.test(msg)) msg = 'El documento es demasiado extenso para responder de una sola vez.';
+      else if(/invalid x-api-key|authentication_error/i.test(msg)) msg = 'La clave de Claude no es válida. Revisa el secreto ANTHROPIC_API_KEY en Supabase.';
+      pending.textContent = 'No se pudo obtener respuesta: ' + msg;
+    } finally {
+      input.disabled = false; send.disabled = false;
+      document.getElementById('chatLog').scrollTop = document.getElementById('chatLog').scrollHeight;
+      input.focus();
+    }
   }
 
   // ---------- Subir nuevo documento ----------

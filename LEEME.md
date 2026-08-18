@@ -15,6 +15,7 @@ inventario-normativo/
 ├── generar-inventario.ps1   ← (opcional) regenera inventario.js desde la carpeta local
 ├── inventario.js            ← catálogo local (solo se usa para la migración inicial)
 ├── documentos/              ← 123 PDF locales (fuente para la migración inicial)
+├── supabase/functions/preguntar/index.ts  ← Edge Function del Asistente IA (Claude)
 └── LEEME.md                 ← este archivo
 ```
 
@@ -115,3 +116,64 @@ Opciones:
 
 Si quieres otra combinación (p. ej. auto-registro con dominio @serfor.gob.pe, o
 que todos los usuarios puedan subir), dímelo y ajusto el SQL y la app.
+
+---
+
+## Asistente IA (Claude) — botón flotante "Consulta Contenido"
+
+El botón flotante **"Consulta Contenido"** (abajo a la derecha, con la mascota
+capibara) abre un chat para preguntarle a Claude sobre el **documento
+seleccionado** y obtener respuestas con **cita de páginas**.
+
+> La imagen del botón se lee de `capibara-serfor.png` en la raíz del sitio
+> (junto a `index.html`). Si no está, el botón funciona igual pero sin imagen. La clave de Claude
+es **secreta**, así que vive en una **Edge Function de Supabase** (`preguntar`),
+nunca en el navegador.
+
+```
+Página web  →  Edge Function "preguntar" (guarda ANTHROPIC_API_KEY)  →  API de Claude (Haiku 4.5)
+```
+
+### Paso A — Crear la clave de Claude
+1. Entra a **console.anthropic.com** → botón **"Obtener clave de API"** (Get API Key).
+2. Crea una clave; cópiala (empieza con `sk-ant-...`). **Es secreta** — no la pongas en `config.js`.
+
+### Paso B — Guardar la clave como secreto en Supabase
+En Supabase: **Project Settings → Edge Functions → Secrets** (o *Manage secrets*),
+agrega:
+```
+ANTHROPIC_API_KEY = sk-ant-...
+```
+(Las variables `SUPABASE_URL`, `SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY`
+ya están disponibles automáticamente dentro de las Edge Functions.)
+
+### Paso C — Desplegar la función `preguntar`
+**Opción 1 — Panel de Supabase (más simple):**
+1. Ve a **Edge Functions → Create a new function**, nómbrala exactamente `preguntar`.
+2. Pega el contenido de `supabase/functions/preguntar/index.ts` y pulsa **Deploy**.
+
+**Opción 2 — CLI (si la tienes instalada):**
+```bash
+supabase login
+supabase link --project-ref armvuvoluoxspfjpefex
+supabase functions deploy preguntar
+```
+
+### Listo
+Recarga la página, abre una directiva y usa el botón **Consulta Contenido**. La página
+llama sola a la función (la URL se deriva de `SUPABASE_URL` en `config.js`; no hay
+nada más que configurar en el frontend).
+
+### Notas
+- **Modelo:** Claude **Haiku 4.5** (el más económico). Para cambiarlo, edita
+  `model: "claude-haiku-4-5"` en `index.ts` (p. ej. `claude-sonnet-5`).
+- **Costo:** cada pregunta cuesta según el tamaño del documento (se envía el PDF
+  como contexto). Una directiva de pocas páginas es de centavos; con US$5 alcanzan
+  decenas o cientos de preguntas. Documentos muy grandes (>~22 MB o >100 páginas)
+  pueden ser rechazados por el límite de Claude — el asistente lo avisa.
+- **Seguridad:** la función verifica que quien pregunta tenga sesión iniciada, y
+  descarga el PDF del bucket privado del lado del servidor. La clave nunca llega
+  al navegador.
+- **Alcance actual:** el asistente responde sobre **un documento a la vez**
+  (Opción A). El siguiente paso (Opción B) sería preguntar sobre **todo el
+  conjunto** a la vez con búsqueda semántica (RAG) — pendiente cuando lo decidas.
