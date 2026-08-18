@@ -31,6 +31,11 @@ Contacto/admin: `mmontoya@serfor.gob.pe`.
   y el Inventario muestra una barra de pestañas *Todas | Normativa base | …* cuando
   hay más de una. Los 122 documentos ya cargados quedan en `Normativa base`.
   Falta ejecutar `supabase-coleccion.sql` en Supabase para crear el campo.
+- **Lote OPR preparado (116 PDF, 148 MB):** 70 normas de SERFOR (47 lineamientos +
+  23 directivas), todas vigentes, descargadas en `Documentos Normativos OPR/`,
+  copiadas a `documentos/` con prefijo `opr_` y catalogadas en `inventario-opr.js`
+  con la colección **`Lineamientos y Directivas OPR`**. Ninguna supera los 50 MB.
+  **Falta subirlo a Supabase** (ver Pendientes).
 - **Repo en GitHub** actualizado.
 - **Aún NO publicado** en el servidor de SERFOR (paquete listo, ver Pendientes).
 
@@ -92,7 +97,14 @@ Navegador (index.html + config.js + lib/supabase.js)
    no envejece solo y sirve para futuros lotes. La barra de pestañas vive **dentro**
    de Inventario (no como pestaña principal aparte) para reutilizar buscador,
    filtros, visor y asistente. Se oculta sola si solo hay una colección.
-9. **UI:** columna de directivas angosta (`0.6fr`) y documento grande (`1.4fr`);
+9. **Títulos del lote OPR:** salen del índice oficial (denominación + norma de
+   aprobación), no del nombre del archivo. Cuando una norma tiene varios PDF
+   (resolución + documento + anexo), la parte va **delante** en corchetes
+   — `[Resolucion] …`, `[Lineamiento] …`, `[Anexo] …` — porque las
+   denominaciones llegan a 300 caracteres y al final no se distinguirían.
+   En la lista los títulos se recortan a 3 líneas (texto completo en el tooltip
+   y en la ficha).
+10. **UI:** columna de directivas angosta (`0.6fr`) y documento grande (`1.4fr`);
    denominación "Inventario Normativo SERFOR"; visor de PDF sin panel de miniaturas
    (`#navpanes=0&pagemode=none&view=FitH`).
 
@@ -112,6 +124,10 @@ Navegador (index.html + config.js + lib/supabase.js)
 | `migrar-a-supabase.ps1` | Migra los PDF locales a Supabase (PowerShell) | ❌ Solo migración |
 | `migrar-a-supabase.mjs` | Igual, versión Node (alternativa) | ❌ Solo migración |
 | `generar-inventario.ps1` | Genera el catálogo; con `-Coleccion` / `-Anexar` arma lotes nuevos | ❌ Solo mantenimiento |
+| `descargar_documentos_normativos_opr.ps1` | Descarga los 116 PDF del lote OPR desde `cdn.www.gob.pe` (reintentable) | ❌ Solo migración |
+| `generar-inventario-opr.ps1` | Catálogo del lote OPR desde el índice oficial (no adivina por nombre de archivo) | ❌ Solo migración |
+| `Documentos Normativos OPR/` | Índice (xlsx + csv), LEEME y los 116 PDF descargados | ❌ (PDF excluidos de git) |
+| `inventario-opr.js` | Catálogo del lote OPR, listo para migrar | ❌ Solo migración |
 | `inventario.js` | Catálogo local (fuente de la migración) | ❌ Solo migración |
 | `documentos/` | 123 PDF locales (~272 MB) | ❌ (viven en Supabase; excluidos de git) |
 | `publicar/` | Paquete listo para copiar a IIS (index.html, config.js, lib/, imagen, web.config) | ✅ Este es lo que se copia |
@@ -178,6 +194,17 @@ Navegador (index.html + config.js + lib/supabase.js)
    pendiente **decidir de dónde salen los PDF del lote nuevo** (carpeta origen) y
    cómo se llamará la colección; el procedimiento está en `LEEME.md` →
    *Agregar un lote nuevo de documentos*.
+0b. **Subir el lote OPR a Supabase** (después del SQL de arriba). Todo lo local ya
+   está hecho; falta un solo comando con la clave `service_role` (pwsh 7, desde la
+   carpeta del proyecto):
+
+   ```
+   ./migrar-a-supabase.ps1 -SupabaseUrl "https://armvuvoluoxspfjpefex.supabase.co" -ServiceKey "<service_role eyJ...>" -Inventario "inventario-opr.js" -Anexar
+   ```
+
+   `-Anexar` es imprescindible: sin él el script **vacía la tabla** y se perderían
+   los 122 documentos ya cargados. Al terminar, la app debe mostrar la barra
+   *Todas | Normativa base | Lineamientos y Directivas OPR* con 122 y 116.
 1. **Redesplegar la Edge Function `preguntar`** con la última versión de
    `index.ts` (incluye el mensaje "DOCUMENTO GRANDE…" para PDF de +100 páginas) y
    **probar** con el reglamento grande (215 páginas) y con una directiva pequeña.

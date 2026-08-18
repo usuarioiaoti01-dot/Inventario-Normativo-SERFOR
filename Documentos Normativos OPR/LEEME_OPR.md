@@ -46,9 +46,9 @@ política de red del sandbox), por lo que no fue posible descargarlos automátic
 
 ## Incorporarlos a la aplicación web
 
-Estas normas entran al inventario web como una **colección aparte** (`Normativa OPR`),
+Estas normas entran al inventario web como una **colección aparte** (`Lineamientos y Directivas OPR`),
 de modo que quedan diferenciadas de los 122 documentos ya migrados: el Inventario
-muestra una barra de pestañas *Todas | Normativa base | Normativa OPR*.
+muestra una barra de pestañas *Todas | Normativa base | Lineamientos y Directivas OPR*.
 
 Después de descargar los PDF con el paso anterior:
 

@@ -106,7 +106,9 @@
   .row:hover{background:var(--brand-tint)}
   .row.active{background:var(--brand-tint);box-shadow:inset 3px 0 0 var(--brand)}
   .doc-ico{width:34px;height:34px;flex:none;border-radius:7px;background:var(--brand-tint);color:var(--brand);display:grid;place-items:center;margin-top:2px}
-  .row-main .name{font-size:.9rem;color:var(--ink);font-weight:500;overflow-wrap:anywhere}
+  /* Titulos largos (denominaciones de hasta ~300 caracteres): 3 lineas como maximo.
+     El texto completo queda en el tooltip y en la ficha del documento. */
+  .row-main .name{font-size:.9rem;color:var(--ink);font-weight:500;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
   .row-main .meta{font-size:.76rem;color:var(--ink-faint);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   .tchip{font-size:.66rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:2px 7px;border-radius:5px;color:#fff;white-space:nowrap}
   .badge{font-size:.66rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 8px;border-radius:20px;white-space:nowrap;align-self:center}
@@ -488,7 +490,7 @@
         html += `<div class="row ${state.active===d.id?'active':''}" onclick="select(${d.id})">
           <div class="doc-ico"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
           <div class="row-main">
-            <div class="name">${esc(d.titulo)}</div>
+            <div class="name" title="${esc(d.titulo)}">${esc(d.titulo)}</div>
             <div class="meta"><span class="tchip" style="background:var(${cls})">${esc(d.tipo)}</span><span>${esc(d.entidad||'')}</span>${d.anio?`<span>· ${d.anio}</span>`:''}</div>
           </div>
           <span class="badge ${stCls(d.estado)}">${esc(d.estado||'Vigente')}</span>

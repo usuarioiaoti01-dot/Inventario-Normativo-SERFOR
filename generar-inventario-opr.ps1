@@ -17,7 +17,7 @@
 #  y sobrescribe en documentos/ solo los PDF de este lote (prefijo opr_).
 # ============================================================
 param(
-  [string]$Coleccion = "Normativa OPR",
+  [string]$Coleccion = "Lineamientos y Directivas OPR",
   [string]$Salida    = "inventario-opr.js"
 )
 
@@ -69,10 +69,12 @@ foreach($f in $filas){
   Copy-Item -LiteralPath $origen -Destination (Join-Path $docs $fname) -Force
   $info = Get-Item -LiteralPath $origen
 
-  # Titulo: denominacion + norma; el sufijo solo si la norma tiene varios archivos
+  # Titulo: denominacion + norma. Si la norma tiene varios archivos, la parte va
+  # DELANTE: las denominaciones son largas y dos filas de la misma norma se
+  # verian identicas si la etiqueta quedara al final.
   $titulo = "$($f.Denominacion) - $($f.'Norma de Aprobacion')"
   if($porNorma["$($f.Tipo)|$($f.Item)"] -gt 1){
-    $titulo = "$titulo ($(Get-Sufijo $f.'Tipo de Archivo' $f.Tipo))"
+    $titulo = "[$(Get-Sufijo $f.'Tipo de Archivo' $f.Tipo)] $titulo"
   }
 
   # Anio: de la fecha; si falta, del numero de la norma (p. ej. D000034-2025)
