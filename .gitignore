@@ -1,0 +1,12 @@
+# Documentos PDF: pesados (~272 MB) y ya alojados en Supabase Storage.
+# No se versionan en GitHub. Se conservan localmente y en Supabase.
+documentos/
+
+# Archivos de sistema
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Temporales
+*.tmp
+*.log
