@@ -46,30 +46,23 @@ Deno.serve(async (req) => {
     if (dlErr || !file) return json({ error: "No se pudo leer el documento: " + (dlErr?.message ?? "") }, 404);
 
     const bytes = new Uint8Array(await file.arrayBuffer());
-    // Límite práctico (Claude admite hasta 32 MB por petición; base64 infla ~33%).
+
+    // Mensaje para documentos que superan el límite del asistente
+    const BIG_MSG = "DOCUMENTO GRANDE - TENGO LIMITADO A SOLO DOCUMENTOS DE 100 PAGINAS O MENOS";
+
+    // Documento demasiado pesado (Claude admite hasta 32 MB; base64 infla ~33%)
     if (bytes.length > 22 * 1024 * 1024) {
-      return json({ error: "El documento es muy grande para el asistente (más de ~22 MB). Puedo dividirlo si lo necesitas." }, 413);
+      return json({ respuesta: BIG_MSG, grande: true });
     }
 
-    // Claude lee PDF nativo hasta 100 páginas. Para documentos más grandes,
-    // extraemos el texto y se lo pasamos como texto (sin límite de páginas).
-    let usarTexto = false, textoDoc = "";
+    // Contar páginas: Claude lee PDF nativo hasta 100 páginas. Si excede, avisamos.
     try {
-      const { getDocumentProxy, extractText } = await import("https://esm.sh/unpdf@0.12.1");
+      const { getDocumentProxy } = await import("https://esm.sh/unpdf@0.12.1");
       const pdf = await getDocumentProxy(bytes);
       if (pdf.numPages > 100) {
-        const r = await extractText(pdf, { mergePages: true });
-        textoDoc = typeof r.text === "string" ? r.text : (Array.isArray(r.text) ? r.text.join("\n") : "");
-        if (textoDoc.trim().length > 0) usarTexto = true;
+        return json({ respuesta: BIG_MSG, grande: true });
       }
-    } catch (_) { /* si falla la extracción, usamos el PDF nativo */ }
-
-    const MAX_CHARS = 700000; // ~175k tokens, margen para el contexto de Haiku (200K)
-    let notaTruncado = "";
-    if (usarTexto && textoDoc.length > MAX_CHARS) {
-      textoDoc = textoDoc.slice(0, MAX_CHARS);
-      notaTruncado = "\n\n[NOTA: documento muy extenso; se analizó solo la primera parte.]";
-    }
+    } catch (_) { /* si no se puede contar, Claude lo detectará abajo */ }
 
     const system =
       "Eres el asistente del Inventario Normativo del SERFOR (Perú). Respondes preguntas sobre documentos normativos " +
@@ -77,12 +70,10 @@ Deno.serve(async (req) => {
       "basándote ÚNICAMENTE en el documento proporcionado. Cita el artículo, numeral o sección cuando corresponda. " +
       "Si la respuesta no está en el documento, dilo explícitamente en lugar de inventar.";
 
-    const content = usarTexto
-      ? [{ type: "text", text: `A continuación el TEXTO del documento normativo:\n\n"""\n${textoDoc}${notaTruncado}\n"""\n\nPregunta del usuario: ${pregunta}` }]
-      : [
-          { type: "document", source: { type: "base64", media_type: "application/pdf", data: encodeBase64(bytes) }, citations: { enabled: true } },
-          { type: "text", text: pregunta },
-        ];
+    const content = [
+      { type: "document", source: { type: "base64", media_type: "application/pdf", data: encodeBase64(bytes) }, citations: { enabled: true } },
+      { type: "text", text: pregunta },
+    ];
 
     // 4) Preguntar a Claude (Haiku 4.5)
     const body = { model: "claude-haiku-4-5", max_tokens: 1024, system, messages: [{ role: "user", content }] };
@@ -99,6 +90,10 @@ Deno.serve(async (req) => {
 
     if (!resp.ok) {
       const t = await resp.text();
+      // Respaldo: si unpdf no pudo contar y el PDF excede 100 páginas
+      if (resp.status === 400 && /100 PDF pages/i.test(t)) {
+        return json({ respuesta: BIG_MSG, grande: true });
+      }
       return json({ error: "Error de Claude (" + resp.status + "): " + t }, 502);
     }
 
