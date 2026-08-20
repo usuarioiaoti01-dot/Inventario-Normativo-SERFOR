@@ -482,7 +482,7 @@
   }
   function setGrupo(i){
     state.grupo = i<0 ? "" : (GRUPOS[i]||"");
-    state.col = "";                     // la coleccion pertenece a la fuente anterior
+    // Los filtros que no existan en la fuente nueva los suelta buildFilters()
     buildColTabs(); buildFilters(); render();
   }
 
@@ -512,18 +512,27 @@
     const tipos = [...new Set(ambito.map(d=>d.tipo).filter(Boolean))].sort((a,b)=>(ORDEN.indexOf(a)-ORDEN.indexOf(b)));
     const ents  = [...new Set(ambito.map(d=>d.entidad).filter(Boolean))].sort();
     const years = [...new Set(ambito.map(d=>d.anio).filter(Boolean))].sort((a,b)=>b-a);
-    fill('fTipo','Todo tipo',tipos); fill('fEnt','Toda entidad',ents); fill('fYear','Todos los años',years);
+    fill('fTipo','Todo tipo',tipos,'tipo');
+    fill('fEnt','Toda entidad',ents,'ent');
+    fill('fYear','Todos los años',years,'year');
 
     // La coleccion es un sublote dentro de la fuente: solo se ofrece si hay mas de uno
     const cols = colecciones(ambito);
-    fill('fCol','Toda colección',cols);
+    fill('fCol','Toda colección',cols,'col');
     document.getElementById('fCol').hidden = cols.length < 2;
-    if(state.col && !cols.includes(state.col)){ state.col = ""; document.getElementById('fCol').value = ""; }
   }
-  function fill(id, first, arr){
+
+  // Rellena un desplegable con los valores del ambito actual.
+  // 'clave' es el campo de state que controla: si el valor que estaba elegido ya
+  // no existe aqui (p. ej. la entidad MIDAGRI al pasar a la pestaña OPR), hay que
+  // soltarlo TAMBIEN del estado. Si no, el desplegable vuelve a "Todo ..." pero el
+  // filtro sigue aplicandose por dentro y la lista aparece vacia.
+  function fill(id, first, arr, clave){
     const el = document.getElementById(id); const cur = el.value;
     el.innerHTML = `<option value="">${first}</option>` + arr.map(v=>`<option>${esc(v)}</option>`).join('');
-    if([...el.options].some(o=>o.value===cur)) el.value = cur;
+    const sigueDisponible = cur !== "" && arr.map(String).includes(cur);
+    el.value = sigueDisponible ? cur : "";
+    if(clave && !sigueDisponible) state[clave] = "";
   }
 
   function filtered(){
