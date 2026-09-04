@@ -1,0 +1,767 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inventario Normativo SERFOR</title>
+<style>
+  :root {
+    --bg:#f3f5f1; --surface:#ffffff; --surface-2:#eef1ea;
+    --ink:#1c2419; --ink-soft:#55604c; --ink-faint:#8a9481;
+    --line:#dce1d4; --line-strong:#c4ccb8;
+    --brand:#2f6b3a; --brand-deep:#234f2c; --brand-tint:#e7efe3;
+    --accent:#b8862f;
+    --ok:#2f7a43; --ok-bg:#e2f0e4; --warn:#9a6a12; --warn-bg:#f6ecd4;
+    --stop:#a23b2c; --stop-bg:#f5e2dd;
+    --shadow:0 1px 2px rgba(28,36,25,.06),0 8px 24px rgba(28,36,25,.06);
+    --radius:10px;
+    --t-dir:#2f6b3a; --t-ley:#8a3ea2; --t-reg:#2867b8; --t-ds:#b8862f; --t-dl:#a35a1f; --t-res:#3a7d8c; --t-ord:#a23b2c;
+  }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+    --bg:#12160f; --surface:#1a1f16; --surface-2:#222820;
+    --ink:#e7ece1; --ink-soft:#a9b3a0; --ink-faint:#6f7a66;
+    --line:#2c3327; --line-strong:#3a4333;
+    --brand:#5fa46b; --brand-deep:#7cbb87; --brand-tint:#1e2a1d; --accent:#d3a24e;
+    --ok:#6bbd7c; --ok-bg:#1c2c1f; --warn:#d3a24e; --warn-bg:#2c2416; --stop:#d97a68; --stop-bg:#2e1c18;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.45);
+    --t-dir:#5fa46b; --t-ley:#c98fda; --t-reg:#6fa3e0; --t-ds:#d3a24e; --t-dl:#d38a5a; --t-res:#6fb3c2; --t-ord:#d97a68;
+  }}
+  [data-theme="dark"]{
+    --bg:#12160f; --surface:#1a1f16; --surface-2:#222820;
+    --ink:#e7ece1; --ink-soft:#a9b3a0; --ink-faint:#6f7a66;
+    --line:#2c3327; --line-strong:#3a4333;
+    --brand:#5fa46b; --brand-deep:#7cbb87; --brand-tint:#1e2a1d; --accent:#d3a24e;
+    --ok:#6bbd7c; --ok-bg:#1c2c1f; --warn:#d3a24e; --warn-bg:#2c2416; --stop:#d97a68; --stop-bg:#2e1c18;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.45);
+    --t-dir:#5fa46b; --t-ley:#c98fda; --t-reg:#6fa3e0; --t-ds:#d3a24e; --t-dl:#d38a5a; --t-res:#6fb3c2; --t-ord:#d97a68;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:"Segoe UI",-apple-system,system-ui,Roboto,Helvetica,Arial,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;height:100vh;overflow:hidden}
+
+  /* ---------- Pantallas de login / setup ---------- */
+  .auth-screen{height:100vh;display:grid;place-items:center;background:linear-gradient(160deg,var(--brand-deep),#152f1b);padding:20px}
+  .auth-card{background:var(--surface);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.35);padding:34px 30px;width:100%;max-width:390px}
+  .auth-card .seal{width:52px;height:52px;border-radius:11px;background:linear-gradient(150deg,var(--accent),#8a6320);display:grid;place-items:center;color:#fff;font-weight:700;font-size:1.3rem;margin:0 auto 16px;box-shadow:inset 0 0 0 2px rgba(255,255,255,.18)}
+  .auth-card h1{margin:0;text-align:center;font-size:1.15rem}
+  .auth-card p.subt{margin:4px 0 22px;text-align:center;font-size:.78rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:.78rem;font-weight:600;color:var(--ink-soft);margin-bottom:5px}
+  .field input,.field select{width:100%;padding:11px 12px;border:1px solid var(--line-strong);border-radius:8px;background:var(--bg);color:var(--ink);font-size:.92rem;font-family:inherit}
+  .field input:focus,.field select:focus{outline:2px solid var(--brand);outline-offset:1px;border-color:var(--brand)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 16px;background:var(--brand);color:#fff;border:0;border-radius:8px;font-size:.9rem;font-weight:600;cursor:pointer;text-decoration:none;font-family:inherit}
+  .btn:hover{background:var(--brand-deep)}
+  .btn:disabled{opacity:.6;cursor:default}
+  .btn.block{width:100%}
+  .btn.ghost{background:transparent;color:var(--brand);border:1px solid var(--line-strong)}
+  .auth-msg{font-size:.82rem;padding:10px 12px;border-radius:8px;margin-bottom:14px}
+  .auth-msg.err{background:var(--stop-bg);color:var(--stop)}
+  .auth-msg.ok{background:var(--ok-bg);color:var(--ok)}
+  .setup-steps{font-size:.85rem;color:var(--ink);line-height:1.7;padding-left:18px}
+  .setup-steps code{background:var(--bg);border:1px solid var(--line);padding:1px 5px;border-radius:4px;font-size:.82em}
+
+  /* ---------- App ---------- */
+  #app{display:flex;flex-direction:column;height:100vh}
+  header.top{background:var(--brand-deep);color:#f0f4ec;padding:0 24px;display:flex;align-items:center;gap:14px;flex:none;height:60px}
+  .seal-sm{width:38px;height:38px;flex:none;border-radius:8px;background:linear-gradient(150deg,var(--accent),#8a6320);display:grid;place-items:center;color:#fff;font-weight:700;font-size:.95rem;box-shadow:inset 0 0 0 2px rgba(255,255,255,.18)}
+  .brand-txt h1{margin:0;font-size:1.02rem;font-weight:650}
+  .brand-txt p{margin:0;font-size:.68rem;color:#b9cbb1;letter-spacing:.04em;text-transform:uppercase}
+  .navtabs{display:flex;gap:4px;margin-left:24px;height:100%}
+  .navtabs button{background:transparent;border:0;color:#c6d6be;font-size:.88rem;font-weight:600;padding:0 16px;cursor:pointer;font-family:inherit;border-bottom:3px solid transparent}
+  .navtabs button.on{color:#fff;border-bottom-color:var(--accent)}
+  .navtabs button:hover{color:#fff}
+  .top-spacer{flex:1}
+  .userbox{display:flex;align-items:center;gap:10px;font-size:.8rem;color:#d7e3d1}
+  .userbox .role{background:rgba(255,255,255,.14);padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+  .icon-btn{background:rgba(255,255,255,.12);border:0;color:#f0f4ec;border-radius:8px;width:34px;height:34px;cursor:pointer;font-size:.95rem}
+
+  .view{flex:1;min-height:0;display:flex;flex-direction:column}
+
+  /* Toolbar */
+  .toolbar{background:var(--surface);border-bottom:1px solid var(--line);padding:12px 24px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;flex:none}
+  .search{position:relative;flex:1 1 300px;min-width:220px}
+  .search input{width:100%;padding:10px 12px 10px 38px;border:1px solid var(--line-strong);border-radius:var(--radius);background:var(--bg);color:var(--ink);font-size:.92rem}
+  .search input:focus{outline:2px solid var(--brand);outline-offset:1px;border-color:var(--brand)}
+  .search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--ink-faint)}
+  select.filter{padding:10px 12px;border:1px solid var(--line-strong);border-radius:var(--radius);background:var(--surface);color:var(--ink);font-size:.86rem;cursor:pointer}
+  select.filter:focus{outline:2px solid var(--brand);outline-offset:1px}
+  .count-pill{font-size:.8rem;color:var(--ink-soft);margin-left:auto;font-variant-numeric:tabular-nums}
+
+  /* Pestanas de coleccion (lotes de normativa) */
+  .colltabs{background:var(--surface);border-bottom:1px solid var(--line);padding:0 24px;display:flex;gap:2px;align-items:flex-end;flex:none;overflow-x:auto}
+  .colltabs button{background:transparent;border:0;border-bottom:3px solid transparent;color:var(--ink-soft);font-family:inherit;font-size:.85rem;font-weight:600;padding:11px 14px;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:7px}
+  .colltabs button:hover{color:var(--ink)}
+  .colltabs button.on{color:var(--brand);border-bottom-color:var(--brand)}
+  .colltabs button i{font-style:normal;font-size:.7rem;font-weight:700;background:var(--surface-2);color:var(--ink-faint);border-radius:10px;padding:1px 7px;font-variant-numeric:tabular-nums}
+  .colltabs button.on i{background:var(--brand-tint);color:var(--brand)}
+
+  .workspace{display:grid;grid-template-columns:0.6fr 1.4fr;flex:1;min-height:0}
+  @media (max-width:900px){.workspace{grid-template-columns:1fr}}
+
+  .list-pane{overflow-y:auto;border-right:1px solid var(--line);min-height:0}
+  .group-head{position:sticky;top:0;z-index:2;background:var(--surface-2);color:var(--ink-soft);font-size:.72rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;padding:9px 24px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between}
+  .group-head span{color:var(--ink-faint);font-weight:600}
+  .row{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start;padding:12px 24px;border-bottom:1px solid var(--line);cursor:pointer;background:var(--surface);transition:background .12s}
+  .row:hover{background:var(--brand-tint)}
+  .row.active{background:var(--brand-tint);box-shadow:inset 3px 0 0 var(--brand)}
+  .doc-ico{width:34px;height:34px;flex:none;border-radius:7px;background:var(--brand-tint);color:var(--brand);display:grid;place-items:center;margin-top:2px}
+  /* Titulos largos (denominaciones de hasta ~300 caracteres): 3 lineas como maximo.
+     El texto completo queda en el tooltip y en la ficha del documento. */
+  .row-main .name{font-size:.9rem;color:var(--ink);font-weight:500;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .row-main .meta{font-size:.76rem;color:var(--ink-faint);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .tchip{font-size:.66rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:2px 7px;border-radius:5px;color:#fff;white-space:nowrap}
+  .badge{font-size:.66rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 8px;border-radius:20px;white-space:nowrap;align-self:center}
+  .badge.vig{background:var(--ok-bg);color:var(--ok)}
+  .badge.mod{background:var(--warn-bg);color:var(--warn)}
+  .badge.der{background:var(--stop-bg);color:var(--stop)}
+  .empty{padding:48px 24px;text-align:center;color:var(--ink-faint);font-size:.9rem}
+
+  .detail-pane{display:flex;flex-direction:column;background:var(--surface-2);min-height:0}
+  .pane-head{display:flex;align-items:center;gap:8px;padding:13px 16px;border-bottom:1px solid var(--line);background:var(--brand-tint);color:var(--brand);font-size:.85rem;font-weight:700;flex:none}
+  /* Botón flotante "Consulta Contenido" */
+  .fab{position:fixed;right:22px;bottom:22px;z-index:60;display:flex;align-items:center;gap:10px;padding:8px 18px 8px 8px;border:0;border-radius:40px;background:linear-gradient(135deg,#e8912e,#c96f1a);color:#fff;font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer;box-shadow:0 8px 22px rgba(0,0,0,.3)}
+  .fab:hover{filter:brightness(1.06)}
+  .fab img{width:46px;height:46px;border-radius:50%;background:#fff;object-fit:cover;flex:none}
+  @media (max-width:560px){.fab span{display:none}.fab{padding:6px;border-radius:50%}}
+  /* Panel de chat flotante */
+  .chat-panel{position:fixed;right:22px;bottom:88px;z-index:60;width:390px;max-width:calc(100vw - 44px);height:min(580px,calc(100vh - 130px));background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.32);display:flex;flex-direction:column;overflow:hidden}
+  .chat-panel-head{display:flex;align-items:center;gap:10px;padding:12px 14px;background:linear-gradient(135deg,#e8912e,#c96f1a);color:#fff;flex:none}
+  .chat-panel-head img{width:40px;height:40px;border-radius:50%;background:#fff;object-fit:cover;flex:none}
+  .chat-panel-head .cph-txt{display:flex;flex-direction:column;line-height:1.25;flex:1;min-width:0}
+  .chat-panel-head .cph-txt b{font-size:.94rem}
+  .chat-panel-head .cph-txt span{font-size:.72rem;opacity:.92;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .chat-close{background:rgba(255,255,255,.22);border:0;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:.9rem;flex:none}
+  .chat-log{flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+  .chat-empty{margin:auto;text-align:center;color:var(--ink-faint);font-size:.86rem;max-width:280px}
+  .msg{max-width:88%;padding:10px 13px;border-radius:12px;font-size:.86rem;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+  .msg.me{background:var(--brand);color:#fff;align-self:flex-end;border-bottom-right-radius:3px}
+  .msg.bot{background:var(--surface);border:1px solid var(--line);align-self:flex-start;border-bottom-left-radius:3px}
+  .msg.err{background:var(--stop-bg);color:var(--stop);align-self:flex-start;font-size:.82rem}
+  .msg .cites{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+  .msg .cite{font-size:.7rem;font-weight:700;background:var(--brand-tint);color:var(--brand);padding:2px 8px;border-radius:20px}
+  .msg.think{color:var(--ink-faint);font-style:italic}
+  .chat-input{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line);background:var(--surface);flex:none}
+  .chat-input input{flex:1;padding:10px 12px;border:1px solid var(--line-strong);border-radius:20px;background:var(--bg);color:var(--ink);font-size:.86rem}
+  .chat-input input:focus{outline:2px solid var(--brand);outline-offset:1px}
+  .chat-input input:disabled{opacity:.6}
+  .chat-input button{flex:none;width:40px;border-radius:50%;border:0;background:var(--brand);color:#fff;cursor:pointer;font-size:1rem}
+  .chat-input button:disabled{opacity:.5;cursor:default}
+  .chat-disclaimer{font-size:.7rem;color:var(--warn);background:var(--warn-bg);text-align:center;padding:8px 12px;line-height:1.35;border-top:1px solid var(--line)}
+  .pane-body{flex:1;min-height:0;display:flex;flex-direction:column}
+  .viewer-empty{display:grid;place-items:center;height:100%;color:var(--ink-faint);text-align:center;padding:30px}
+  .doc-head{padding:16px 22px;border-bottom:1px solid var(--line);background:var(--surface);flex:none}
+  .doc-head .sub{color:var(--brand);font-weight:700;font-size:.78rem}
+  .doc-head h2{margin:3px 0 8px;font-size:1rem;overflow-wrap:anywhere}
+  .doc-head .metas{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:.76rem;color:var(--ink-soft)}
+  .doc-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .pdf-wrap{flex:1;min-height:0;background:#525659}
+  .pdf-wrap iframe{width:100%;height:100%;border:0;display:block}
+
+  /* Nuevos registros */
+  .form-view{flex:1;min-height:0;overflow-y:auto;padding:28px 24px}
+  .form-card{max-width:640px;margin:0 auto;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:26px;box-shadow:var(--shadow)}
+  .form-card h2{margin:0 0 4px;font-size:1.1rem}
+  .form-card p.hint{margin:0 0 20px;color:var(--ink-soft);font-size:.86rem}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .form-grid .full{grid-column:1 / -1}
+  @media (max-width:560px){.form-grid{grid-template-columns:1fr}}
+  .filedrop{border:2px dashed var(--line-strong);border-radius:10px;padding:22px;text-align:center;color:var(--ink-faint);font-size:.86rem;cursor:pointer}
+  .filedrop.has{border-color:var(--brand);color:var(--brand);background:var(--brand-tint)}
+  .form-msg{margin-top:14px;font-size:.85rem;padding:10px 12px;border-radius:8px}
+  .form-msg.err{background:var(--stop-bg);color:var(--stop)}
+  .form-msg.ok{background:var(--ok-bg);color:var(--ok)}
+  .noadmin{max-width:520px;margin:60px auto;text-align:center;color:var(--ink-soft)}
+</style>
+</head>
+<body>
+
+<!-- ===== Pantalla: configuración requerida ===== -->
+<div id="setupScreen" class="auth-screen" hidden>
+  <div class="auth-card">
+    <div class="seal">SF</div>
+    <h1>Configuración pendiente</h1>
+    <p class="subt">Inventario Normativo SERFOR</p>
+    <p style="font-size:.86rem;color:var(--ink-soft)">Falta conectar la aplicación con Supabase. Edita <code>config.js</code> con la URL y la clave <b>anon</b> de tu proyecto, y ejecuta <code>supabase-setup.sql</code>. Consulta <code>LEEME.md</code> para el paso a paso.</p>
+  </div>
+</div>
+
+<!-- ===== Pantalla: inicio de sesión ===== -->
+<div id="loginScreen" class="auth-screen" hidden>
+  <form class="auth-card" id="loginForm">
+    <div class="seal">SF</div>
+    <h1>Inventario Normativo SERFOR</h1>
+    <p class="subt">Acceso institucional</p>
+    <div id="loginMsg"></div>
+    <div class="field">
+      <label for="email">Correo institucional</label>
+      <input id="email" type="email" autocomplete="username" required placeholder="usuario@serfor.gob.pe">
+    </div>
+    <div class="field">
+      <label for="pass">Contraseña</label>
+      <input id="pass" type="password" autocomplete="current-password" required>
+    </div>
+    <button class="btn block" id="loginBtn" type="submit">Ingresar</button>
+    <p style="font-size:.76rem;color:var(--ink-faint);text-align:center;margin:16px 0 0">El acceso lo habilita el administrador. Si no puedes ingresar, solicita tu cuenta a la OTI.</p>
+  </form>
+</div>
+
+<!-- ===== Aplicación ===== -->
+<div id="app" hidden>
+  <header class="top">
+    <div class="seal-sm">SF</div>
+    <div class="brand-txt">
+      <h1>Inventario Normativo SERFOR</h1>
+      <p>Servicio Nacional Forestal y de Fauna Silvestre</p>
+    </div>
+    <nav class="navtabs">
+      <button id="navInv" class="on" onclick="showView('inv')">Inventario</button>
+      <button id="navNew" onclick="showView('new')" hidden>Nuevos registros</button>
+    </nav>
+    <div class="top-spacer"></div>
+    <div class="userbox">
+      <span class="role" id="roleTag">lector</span>
+      <span id="userEmail"></span>
+    </div>
+    <button class="icon-btn" id="themeBtn" title="Cambiar tema">◐</button>
+    <button class="icon-btn" id="logoutBtn" title="Cerrar sesión">⎋</button>
+  </header>
+
+  <!-- Vista: Inventario -->
+  <div id="viewInv" class="view">
+    <div class="colltabs" id="collTabs" hidden></div>
+    <div class="toolbar">
+      <div class="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="q" type="search" placeholder="Buscar por número, tema, entidad, palabra clave…" autocomplete="off">
+      </div>
+      <select class="filter" id="fTipo"><option value="">Todo tipo</option></select>
+      <select class="filter" id="fEnt"><option value="">Toda entidad</option></select>
+      <select class="filter" id="fYear"><option value="">Todos los años</option></select>
+      <select class="filter" id="fCol" hidden><option value="">Toda colección</option></select>
+      <span class="count-pill" id="countPill"></span>
+    </div>
+    <div class="workspace">
+      <div class="list-pane" id="listPane"><div class="empty">Cargando documentos…</div></div>
+      <div class="detail-pane">
+        <div class="pane-head">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+          Documento
+        </div>
+        <div class="pane-body">
+          <div id="paneDoc" style="flex:1;min-height:0;display:flex;flex-direction:column">
+            <div class="viewer-empty" id="docEmpty">
+              <div>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+                <p>Selecciona un documento de la lista<br>para verlo aquí.</p>
+              </div>
+            </div>
+            <div class="doc-head" id="docHead" hidden></div>
+            <div class="pdf-wrap" id="pdfWrap" hidden><iframe id="pdfFrame" title="Visor de documento"></iframe></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vista: Nuevos registros -->
+  <div id="viewNew" class="view" hidden>
+    <div class="form-view">
+      <div id="adminForm">
+        <form class="form-card" id="uploadForm">
+          <h2>Agregar documento a la base</h2>
+          <p class="hint">Sube un PDF y completa sus datos. Quedará registrado en la base de datos y disponible para todos los usuarios.</p>
+          <div class="form-grid">
+            <div class="field full">
+              <label for="uTitulo">Título / nombre del documento *</label>
+              <input id="uTitulo" required placeholder="Ej: Directiva General N° 002-2024-GG">
+            </div>
+            <div class="field">
+              <label for="uTipo">Tipo *</label>
+              <select id="uTipo" required>
+                <option value="">— Seleccionar —</option>
+                <option>Directiva</option><option>Reglamento</option><option>Ley</option>
+                <option>Decreto Supremo</option><option>Decreto Legislativo</option><option>Decreto de Urgencia</option>
+                <option>TUO</option><option>Resolucion</option><option>Ordenanza</option>
+                <option>Politica</option><option>Estrategia</option><option>Plan</option>
+                <option>Lineamientos</option><option>Guia</option><option>Manual</option>
+                <option>Procedimiento</option><option>Norma</option><option>Otros</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="uEnt">Entidad</label>
+              <input id="uEnt" placeholder="Ej: SERFOR, PCM, MEF…">
+            </div>
+            <div class="field">
+              <label for="uAnio">Año</label>
+              <input id="uAnio" type="number" min="1990" max="2100" placeholder="2026">
+            </div>
+            <div class="field">
+              <label for="uEstado">Estado</label>
+              <select id="uEstado"><option>Vigente</option><option>Modificada</option><option>Derogada</option></select>
+            </div>
+            <div class="field full" id="campoFuente" hidden>
+              <label for="uFuente">Guardar en</label>
+              <select id="uFuente"></select>
+              <p class="hint" style="margin:6px 0 0">Cada conjunto de normas vive en su propia tabla y aparece como una pestaña del inventario.</p>
+            </div>
+            <div class="field full" id="campoCol" hidden>
+              <label for="uCol">Colección</label>
+              <input id="uCol" list="colList" placeholder="(opcional)" autocomplete="off">
+              <datalist id="colList"></datalist>
+              <p class="hint" style="margin:6px 0 0">Sublote dentro de la tabla elegida; sirve para filtrar. Si lo dejas vacío, toma el nombre de la tabla.</p>
+            </div>
+            <div class="field full">
+              <label>Archivo PDF *</label>
+              <label class="filedrop" id="fileDrop" for="uFile">Haz clic para elegir un PDF o arrástralo aquí</label>
+              <input id="uFile" type="file" accept="application/pdf" hidden required>
+            </div>
+          </div>
+          <div id="formMsg"></div>
+          <div style="margin-top:18px;display:flex;gap:10px">
+            <button class="btn" id="uploadBtn" type="submit">Guardar en la base</button>
+            <button class="btn ghost" type="reset">Limpiar</button>
+          </div>
+        </form>
+      </div>
+      <div id="noAdmin" class="noadmin" hidden>
+        <h2>Solo administradores</h2>
+        <p>Tu cuenta tiene rol de <b>lector</b>. Para agregar documentos, solicita permisos de administrador a la OTI.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Asistente IA flotante -->
+  <button id="fab" class="fab" onclick="toggleChat()" title="Consulta el contenido del documento con IA">
+    <img src="capibara-serfor.png" alt="" onerror="this.style.display='none'">
+    <span>Consulta Contenido</span>
+  </button>
+
+  <div id="chatPanel" class="chat-panel" hidden>
+    <div class="chat-panel-head">
+      <img src="capibara-serfor.png" alt="" onerror="this.style.display='none'">
+      <div class="cph-txt">
+        <b>Consulta Contenido</b>
+        <span id="chatScope">Selecciona un documento</span>
+      </div>
+      <button class="chat-close" onclick="toggleChat()" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="chat-log" id="chatLog">
+      <div class="chat-empty">Elige una directiva y hazme preguntas sobre su contenido. Responderé citando el documento.</div>
+    </div>
+    <div class="chat-input">
+      <input id="chatQ" placeholder="Pregunta sobre este documento…" autocomplete="off" disabled onkeydown="if(event.key==='Enter')askAI()">
+      <button id="chatSend" onclick="askAI()" disabled aria-label="Enviar">➤</button>
+    </div>
+    <div class="chat-disclaimer">⚠️ Asistente en fase de prueba: puede cometer errores o estar limitado en algunas funciones. Verifica siempre contra el documento oficial. (IA: Claude Haiku 4.5)</div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="lib/supabase.js"></script>
+<script>
+  const TIPOCLS = {
+    "Directiva":"--t-dir","Ley":"--t-ley","Reglamento":"--t-reg",
+    "Decreto Supremo":"--t-ds","Decreto Legislativo":"--t-dl","Decreto de Urgencia":"--t-dl","TUO":"--t-dl",
+    "Resolucion":"--t-res","Resolución":"--t-res","Ordenanza":"--t-ord",
+    "Politica":"--t-ley","Estrategia":"--t-ley","Plan":"--t-reg","Lineamientos":"--t-reg",
+    "Guia":"--t-res","Manual":"--t-res","Procedimiento":"--t-res","Norma":"--t-dir","Otros":"--t-dir"
+  };
+  const ORDEN = ["Directiva","Reglamento","Ley","Decreto Supremo","Decreto Legislativo","Decreto de Urgencia","TUO","Resolucion","Resolución","Ordenanza","Politica","Estrategia","Plan","Lineamientos","Guia","Manual","Procedimiento","Norma","Otros"];
+  const esc = s => (s==null?"":String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const stCls = s => s==="Derogada"?"der":s==="Modificada"?"mod":"vig";
+
+  let sb = null, INVENTARIO = [], isAdmin = false, currentUser = null;
+  let GRUPOS = [];             // fuentes que respondieron (las tablas que existen)
+  const COL_OK = {};           // por tabla: si tiene la columna 'coleccion' (ver supabase-coleccion.sql)
+  // Fuentes de datos: cada tabla de Supabase es una pestaña del inventario.
+  // Para sumar otro conjunto: crear su tabla (ver supabase-tabla-opr.sql como
+  // modelo) y agregar aquí una línea. Los PDF de todas las fuentes viven en el
+  // mismo bucket 'documentos', así que el visor y el asistente no cambian.
+  const FUENTES = [
+    { tabla:"documentos",     nombre:"Normativa base" },
+    { tabla:"normativos_opr", nombre:"Normativos OPR" }
+  ];
+  const COL_BASE = "Normativa base";   // coleccion de los documentos ya cargados
+  // grupo:"" = todas las fuentes  |  col:"" = todas las colecciones de la fuente activa
+  const state = { q:"", tipo:"", ent:"", year:"", grupo:"", col:"", active:null };
+
+  // ---------- Arranque ----------
+  function boot(){
+    const configured = (typeof SUPABASE_URL !== 'undefined' && SUPABASE_URL) && (typeof SUPABASE_ANON_KEY !== 'undefined' && SUPABASE_ANON_KEY);
+    if(!configured || !window.supabase){ show('setupScreen'); return; }
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    sb.auth.getSession().then(({data})=>{ data.session ? enterApp(data.session) : show('loginScreen'); });
+    sb.auth.onAuthStateChange((_e,session)=>{ session ? enterApp(session) : show('loginScreen'); });
+  }
+  function show(id){ ['setupScreen','loginScreen','app'].forEach(x=>document.getElementById(x).hidden = (x!==id)); }
+
+  // ---------- Login ----------
+  document.getElementById('loginForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const btn = document.getElementById('loginBtn'); const msg = document.getElementById('loginMsg');
+    btn.disabled = true; btn.textContent = 'Ingresando…'; msg.innerHTML='';
+    const { error } = await sb.auth.signInWithPassword({
+      email: document.getElementById('email').value.trim(),
+      password: document.getElementById('pass').value
+    });
+    if(error){ msg.innerHTML = `<div class="auth-msg err">${esc(error.message==='Invalid login credentials'?'Correo o contraseña incorrectos.':error.message)}</div>`; btn.disabled=false; btn.textContent='Ingresar'; }
+    // si es correcto, onAuthStateChange entra a la app
+  });
+
+  document.getElementById('logoutBtn').onclick = async ()=>{ await sb.auth.signOut(); };
+
+  // ---------- Entrar a la app ----------
+  async function enterApp(session){
+    currentUser = session.user;
+    document.getElementById('userEmail').textContent = currentUser.email;
+    show('app');
+    // rol
+    const { data: prof } = await sb.from('profiles').select('role').eq('id', currentUser.id).single();
+    isAdmin = prof && prof.role === 'admin';
+    document.getElementById('roleTag').textContent = isAdmin ? 'admin' : 'lector';
+    document.getElementById('navNew').hidden = !isAdmin;
+    document.getElementById('adminForm').hidden = !isAdmin;
+    document.getElementById('noAdmin').hidden = isAdmin;
+    await loadDocs();
+  }
+
+  // ---------- Cargar documentos desde todas las fuentes ----------
+  // Una tabla que todavia no existe no rompe la app: se omite esa fuente.
+  const noExiste = e => e && (e.code === '42P01' || /does not exist|Could not find the table/i.test(e.message||''));
+
+  async function loadDocs(){
+    const pane = document.getElementById('listPane');
+    pane.innerHTML = `<div class="empty">Cargando documentos…</div>`;
+
+    const res = await Promise.all(FUENTES.map(f =>
+      sb.from(f.tabla).select('*').then(r => ({ f, ...r }))
+    ));
+
+    const fallos = [];
+    INVENTARIO = []; GRUPOS = [];
+    for(const r of res){
+      if(r.error){
+        if(!noExiste(r.error)) fallos.push(`${r.f.nombre}: ${r.error.message}`);
+        continue;   // tabla inexistente = fuente aun no creada
+      }
+      GRUPOS.push(r.f.nombre);
+      // La columna 'coleccion' puede existir en una tabla y no en otra
+      COL_OK[r.f.tabla] = (r.data||[]).length > 0 && Object.prototype.hasOwnProperty.call(r.data[0], 'coleccion');
+      // id se repite entre tablas: la clave de seleccion es tabla + id
+      for(const d of (r.data || [])){
+        INVENTARIO.push({ ...d, _tabla:r.f.tabla, _grupo:r.f.nombre, _key:`${r.f.tabla}:${d.id}` });
+      }
+    }
+
+    if(!INVENTARIO.length && fallos.length){
+      pane.innerHTML = `<div class="empty">Error al cargar: ${esc(fallos.join(' | '))}</div>`; return;
+    }
+    if(fallos.length) console.warn('Fuentes con error:', fallos.join(' | '));
+
+    buildFuenteSelect(); buildColTabs(); buildColList(); buildFilters(); render();
+  }
+
+  // Colecciones (sublotes) presentes dentro de un ambito dado
+  function colecciones(items){
+    const cs = [...new Set((items||INVENTARIO).map(d=>d.coleccion).filter(Boolean))];
+    return cs.sort((a,b)=> a===COL_BASE?-1 : b===COL_BASE?1 : a.localeCompare(b,'es'));
+  }
+
+  // La barra de pestañas es una por fuente (tabla). Solo aparece si hay mas de una.
+  function buildColTabs(){
+    const bar = document.getElementById('collTabs');
+    if(GRUPOS.length < 2){ bar.hidden = true; bar.innerHTML = ''; state.grupo = ""; return; }
+    if(state.grupo && !GRUPOS.includes(state.grupo)) state.grupo = "";
+    const cuenta = g => INVENTARIO.filter(d=>d._grupo===g).length;
+    bar.hidden = false;
+    // Se referencian por indice: los rotulos pueden traer comillas
+    bar.innerHTML =
+      `<button class="${state.grupo===''?'on':''}" onclick="setGrupo(-1)">Todas<i>${INVENTARIO.length}</i></button>` +
+      GRUPOS.map((g,i)=>`<button class="${state.grupo===g?'on':''}" onclick="setGrupo(${i})">${esc(g)}<i>${cuenta(g)}</i></button>`).join('');
+  }
+  function setGrupo(i){
+    state.grupo = i<0 ? "" : (GRUPOS[i]||"");
+    // Los filtros que no existan en la fuente nueva los suelta buildFilters()
+    buildColTabs(); buildFilters(); render();
+  }
+
+  // Sugerir en el formulario las colecciones que ya existen
+  function buildColList(){
+    document.getElementById('colList').innerHTML =
+      colecciones().map(c=>`<option value="${esc(c)}">`).join('');
+  }
+
+  // Selector de tabla destino en el formulario de carga
+  function buildFuenteSelect(){
+    const el = document.getElementById('uFuente');
+    const disponibles = FUENTES.filter(f=>GRUPOS.includes(f.nombre));
+    el.innerHTML = disponibles.map(f=>`<option value="${esc(f.tabla)}">${esc(f.nombre)}</option>`).join('');
+    document.getElementById('campoFuente').hidden = disponibles.length < 2;
+    el.onchange = sincronizarCampoCol;
+    sincronizarCampoCol();
+  }
+  // Solo se ofrece Coleccion si la tabla destino tiene esa columna
+  function sincronizarCampoCol(){
+    const t = document.getElementById('uFuente').value;
+    document.getElementById('campoCol').hidden = !COL_OK[t];
+  }
+
+  function buildFilters(){
+    const ambito = state.grupo ? INVENTARIO.filter(d=>d._grupo===state.grupo) : INVENTARIO;
+    const tipos = [...new Set(ambito.map(d=>d.tipo).filter(Boolean))].sort((a,b)=>(ORDEN.indexOf(a)-ORDEN.indexOf(b)));
+    const ents  = [...new Set(ambito.map(d=>d.entidad).filter(Boolean))].sort();
+    const years = [...new Set(ambito.map(d=>d.anio).filter(Boolean))].sort((a,b)=>b-a);
+    fill('fTipo','Todo tipo',tipos,'tipo');
+    fill('fEnt','Toda entidad',ents,'ent');
+    fill('fYear','Todos los años',years,'year');
+
+    // La coleccion es un sublote dentro de la fuente: solo se ofrece si hay mas de uno
+    const cols = colecciones(ambito);
+    fill('fCol','Toda colección',cols,'col');
+    document.getElementById('fCol').hidden = cols.length < 2;
+  }
+
+  // Rellena un desplegable con los valores del ambito actual.
+  // 'clave' es el campo de state que controla: si el valor que estaba elegido ya
+  // no existe aqui (p. ej. la entidad MIDAGRI al pasar a la pestaña OPR), hay que
+  // soltarlo TAMBIEN del estado. Si no, el desplegable vuelve a "Todo ..." pero el
+  // filtro sigue aplicandose por dentro y la lista aparece vacia.
+  function fill(id, first, arr, clave){
+    const el = document.getElementById(id); const cur = el.value;
+    el.innerHTML = `<option value="">${first}</option>` + arr.map(v=>`<option>${esc(v)}</option>`).join('');
+    const sigueDisponible = cur !== "" && arr.map(String).includes(cur);
+    el.value = sigueDisponible ? cur : "";
+    if(clave && !sigueDisponible) state[clave] = "";
+  }
+
+  function filtered(){
+    const q = state.q.toLowerCase();
+    return INVENTARIO.filter(d=>{
+      if(state.grupo && d._grupo!==state.grupo) return false;
+      if(state.col && d.coleccion!==state.col) return false;
+      if(state.tipo && d.tipo!==state.tipo) return false;
+      if(state.ent && d.entidad!==state.ent) return false;
+      if(state.year && String(d.anio)!==state.year) return false;
+      if(q){ const hay=(d.titulo+" "+d.tipo+" "+d.entidad+" "+(d.anio||"")+" "+(d.original||"")+" "+(d.coleccion||"")).toLowerCase(); if(!hay.includes(q)) return false; }
+      return true;
+    });
+  }
+
+  function render(){
+    const items = filtered();
+    const universo = state.grupo ? INVENTARIO.filter(d=>d._grupo===state.grupo).length : INVENTARIO.length;
+    document.getElementById('countPill').textContent = `${items.length} de ${universo}`;
+    const pane = document.getElementById('listPane');
+    if(!items.length){ pane.innerHTML=`<div class="empty">Sin resultados.</div>`; return; }
+    const byTipo = {};
+    items.forEach(d=>{ (byTipo[d.tipo]=byTipo[d.tipo]||[]).push(d); });
+    let html="";
+    Object.keys(byTipo).sort((a,b)=>{const x=ORDEN.indexOf(a),y=ORDEN.indexOf(b);return (x<0?99:x)-(y<0?99:y)}).forEach(tp=>{
+      const arr = byTipo[tp].sort((a,b)=>(b.anio||0)-(a.anio||0));
+      html += `<div class="group-head">${esc(tp)}<span>${arr.length}</span></div>`;
+      arr.forEach(d=>{
+        const cls = TIPOCLS[d.tipo]||"--brand";
+        html += `<div class="row ${state.active===d._key?'active':''}" onclick="select('${d._key}')">
+          <div class="doc-ico"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
+          <div class="row-main">
+            <div class="name" title="${esc(d.titulo)}">${esc(d.titulo)}</div>
+            <div class="meta"><span class="tchip" style="background:var(${cls})">${esc(d.tipo)}</span><span>${esc(d.entidad||'')}</span>${d.anio?`<span>· ${d.anio}</span>`:''}</div>
+          </div>
+          <span class="badge ${stCls(d.estado)}">${esc(d.estado||'Vigente')}</span>
+        </div>`;
+      });
+    });
+    pane.innerHTML = html;
+  }
+
+  async function select(key){
+    const d = INVENTARIO.find(x=>x._key===key); if(!d) return;
+    state.active = key; render();
+    resetChat(d);
+    document.getElementById('docEmpty').hidden = true;
+    const head = document.getElementById('docHead');
+    head.hidden = false;
+    head.innerHTML = `
+      <div class="sub">${esc(d.tipo)} · ${esc(d.entidad||'')}${d.anio?` · ${d.anio}`:''}${GRUPOS.length>1?` · ${esc(d._grupo)}`:''}${d.coleccion&&d.coleccion!==d._grupo?` · ${esc(d.coleccion)}`:''}</div>
+      <h2>${esc(d.titulo)}</h2>
+      <div class="metas">
+        <span class="badge ${stCls(d.estado)}">${esc(d.estado||'Vigente')}</span>
+        ${d.kb?`<span>· ${d.kb} KB</span>`:''}
+      </div>
+      <div class="doc-actions" id="docActions"><span style="font-size:.8rem;color:var(--ink-faint)">Generando enlace…</span></div>`;
+    document.getElementById('pdfWrap').hidden = true;
+
+    // Enlace firmado temporal (bucket privado)
+    const { data, error } = await sb.storage.from('documentos').createSignedUrl(d.archivo, 3600);
+    const acts = document.getElementById('docActions');
+    if(error || !data){ acts.innerHTML = `<span style="font-size:.8rem;color:var(--stop)">No se pudo abrir el archivo: ${esc(error?error.message:'sin URL')}</span>`; return; }
+    const url = data.signedUrl;
+    document.getElementById('pdfFrame').src = url + (url.includes('#')?'':'#') + 'navpanes=0&pagemode=none&view=FitH';
+    document.getElementById('pdfWrap').hidden = false;
+    acts.innerHTML = `
+      <a class="btn" href="${url}" download="${esc(d.original||d.titulo)}.pdf">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg> Descargar
+      </a>
+      <a class="btn ghost" href="${url}" target="_blank" rel="noopener">Abrir en pestaña</a>`;
+  }
+
+  // ---------- Navegación entre vistas ----------
+  function showView(v){
+    const inv = v==='inv';
+    document.getElementById('viewInv').hidden = !inv;
+    document.getElementById('viewNew').hidden = inv;
+    document.getElementById('navInv').classList.toggle('on', inv);
+    document.getElementById('navNew').classList.toggle('on', !inv);
+  }
+
+  // ---------- Asistente IA flotante ----------
+  function toggleChat(){
+    const panel = document.getElementById('chatPanel');
+    panel.hidden = !panel.hidden;
+    if(!panel.hidden && !document.getElementById('chatQ').disabled) document.getElementById('chatQ').focus();
+  }
+
+  let chatDoc = null;  // documento activo para el chat
+  function resetChat(d){
+    chatDoc = d;
+    document.getElementById('chatScope').textContent = d.titulo;
+    document.getElementById('chatLog').innerHTML =
+      `<div class="chat-empty">Hazme preguntas sobre <b>${esc(d.titulo)}</b>. Responderé citando el documento.</div>`;
+    document.getElementById('chatQ').disabled = false;
+    document.getElementById('chatSend').disabled = false;
+    document.getElementById('chatQ').placeholder = 'Pregunta sobre este documento…';
+  }
+
+  function addMsg(cls, html){
+    const log = document.getElementById('chatLog');
+    const empty = log.querySelector('.chat-empty'); if(empty) empty.remove();
+    const el = document.createElement('div');
+    el.className = 'msg ' + cls;
+    el.innerHTML = html;
+    log.appendChild(el);
+    log.scrollTop = log.scrollHeight;
+    return el;
+  }
+
+  async function askAI(){
+    if(!chatDoc) return;
+    const input = document.getElementById('chatQ');
+    const pregunta = input.value.trim();
+    if(!pregunta) return;
+    input.value = '';
+    const send = document.getElementById('chatSend');
+    input.disabled = true; send.disabled = true;
+    addMsg('me', esc(pregunta));
+    const pending = addMsg('bot think', 'Consultando el documento…');
+
+    try {
+      const { data, error } = await sb.functions.invoke('preguntar', {
+        body: { archivo: chatDoc.archivo, pregunta }
+      });
+      if(error) throw error;
+      if(data && data.error) throw new Error(data.error);
+
+      pending.classList.remove('think');
+      let html = esc(data.respuesta || 'Sin respuesta.');
+      if(data.paginas && data.paginas.length){
+        html += `<div class="cites">` + data.paginas.map(p=>`<span class="cite">pág. ${p}</span>`).join('') + `</div>`;
+      }
+      pending.innerHTML = html;
+    } catch(e){
+      pending.className = 'msg err';
+      let msg = (e && e.message) ? e.message : String(e);
+      // Intentar leer el detalle real que devolvió la función
+      try {
+        if(e && e.context && typeof e.context.json === 'function'){
+          const body = await e.context.json();
+          if(body && body.error) msg = body.error;
+        }
+      } catch(_) {}
+      // Mensajes amigables para casos conocidos
+      if(/100 PDF pages/i.test(msg)) msg = 'Este documento tiene demasiadas páginas para el visor de IA y no se pudo procesar automáticamente.';
+      else if(/too large|22 MB|413/i.test(msg)) msg = 'El documento es demasiado grande para el asistente.';
+      else if(/prompt is too long|context|maximum.*tokens/i.test(msg)) msg = 'El documento es demasiado extenso para responder de una sola vez.';
+      else if(/invalid x-api-key|authentication_error/i.test(msg)) msg = 'La clave de Claude no es válida. Revisa el secreto ANTHROPIC_API_KEY en Supabase.';
+      pending.textContent = 'No se pudo obtener respuesta: ' + msg;
+    } finally {
+      input.disabled = false; send.disabled = false;
+      document.getElementById('chatLog').scrollTop = document.getElementById('chatLog').scrollHeight;
+      input.focus();
+    }
+  }
+
+  // ---------- Subir nuevo documento ----------
+  const fileInput = document.getElementById('uFile');
+  const fileDrop = document.getElementById('fileDrop');
+  fileInput.addEventListener('change', ()=>{
+    if(fileInput.files.length){ fileDrop.textContent = '📄 ' + fileInput.files[0].name; fileDrop.classList.add('has'); }
+    else { fileDrop.textContent = 'Haz clic para elegir un PDF o arrástralo aquí'; fileDrop.classList.remove('has'); }
+  });
+  ['dragover','dragenter'].forEach(ev=>fileDrop.addEventListener(ev,e=>{e.preventDefault();fileDrop.classList.add('has');}));
+  fileDrop.addEventListener('drop',e=>{ e.preventDefault(); if(e.dataTransfer.files.length){ fileInput.files=e.dataTransfer.files; fileInput.dispatchEvent(new Event('change')); }});
+
+  function slug(s){
+    return s.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-zA-Z0-9]+/g,'_').replace(/^_+|_+$/g,'').toLowerCase().slice(0,60) || 'documento';
+  }
+
+  document.getElementById('uploadForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    if(!isAdmin) return;
+    const btn = document.getElementById('uploadBtn'); const msg = document.getElementById('formMsg');
+    const file = fileInput.files[0];
+    if(!file){ msg.className='form-msg err'; msg.textContent='Selecciona un archivo PDF.'; return; }
+    btn.disabled = true; btn.textContent = 'Subiendo…'; msg.className=''; msg.textContent='';
+
+    const titulo = document.getElementById('uTitulo').value.trim();
+    const path = `${slug(titulo)}_${Date.now()}.pdf`;
+
+    // 1) subir al Storage
+    const up = await sb.storage.from('documentos').upload(path, file, { contentType:'application/pdf', upsert:false });
+    if(up.error){ msg.className='form-msg err'; msg.textContent='Error al subir el archivo: '+up.error.message; btn.disabled=false; btn.textContent='Guardar en la base'; return; }
+
+    // 2) insertar fila
+    const row = {
+      tipo: document.getElementById('uTipo').value,
+      titulo, entidad: document.getElementById('uEnt').value.trim() || null,
+      anio: parseInt(document.getElementById('uAnio').value) || null,
+      estado: document.getElementById('uEstado').value,
+      fecha: new Date().toISOString().slice(0,10),
+      kb: Math.round(file.size/1024),
+      archivo: path, original: file.name, created_by: currentUser.id
+    };
+    // Tabla destino: la elegida, o la primera disponible si el selector esta oculto
+    const selFuente = document.getElementById('uFuente');
+    const tabla = selFuente.value || (FUENTES[0] && FUENTES[0].tabla) || 'documentos';
+    const nombreFuente = (FUENTES.find(f=>f.tabla===tabla)||{}).nombre || COL_BASE;
+    if(COL_OK[tabla]) row.coleccion = document.getElementById('uCol').value.trim() || nombreFuente;
+    const ins = await sb.from(tabla).insert(row);
+    if(ins.error){
+      await sb.storage.from('documentos').remove([path]); // revertir archivo huérfano
+      msg.className='form-msg err'; msg.textContent='Error al registrar: '+ins.error.message;
+      btn.disabled=false; btn.textContent='Guardar en la base'; return;
+    }
+
+    msg.className='form-msg ok'; msg.textContent='✅ Documento agregado a la base.';
+    e.target.reset(); fileInput.dispatchEvent(new Event('change'));
+    btn.disabled=false; btn.textContent='Guardar en la base';
+    await loadDocs();
+    setTimeout(()=>showView('inv'), 900);
+  });
+
+  // ---------- Tema y filtros ----------
+  document.getElementById('themeBtn').onclick = ()=>{
+    const cur = document.documentElement.getAttribute('data-theme');
+    const next = cur==='dark'?'light':cur==='light'?'':'dark';
+    if(next) document.documentElement.setAttribute('data-theme',next); else document.documentElement.removeAttribute('data-theme');
+  };
+  document.getElementById('q').oninput = e=>{ state.q=e.target.value; render(); };
+  document.getElementById('fCol').onchange = e=>{ state.col=e.target.value; render(); };
+  document.getElementById('fTipo').onchange = e=>{ state.tipo=e.target.value; render(); };
+  document.getElementById('fEnt').onchange  = e=>{ state.ent=e.target.value; render(); };
+  document.getElementById('fYear').onchange = e=>{ state.year=e.target.value; render(); };
+
+  boot();
+</script>
+</body>
+</html>
