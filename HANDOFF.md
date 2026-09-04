@@ -38,6 +38,13 @@ Contacto/admin: `mmontoya@serfor.gob.pe`.
   Subidos: 116, fallidos: 0. Los PDF están en el mismo bucket `documentos` con
   prefijo `opr_`, así que el visor y el asistente IA los abren sin cambios.
   Fuente y catálogo: `Documentos Normativos OPR/` e `inventario-opr.js`.
+- **Módulo de administración de cuentas (2026-09-04):** perfiles
+  **Administrador** y **Especialista** (antes `admin`/`lector`), pestaña
+  *Usuarios* para alta, baja, cambio de perfil y restablecimiento de clave, y
+  **cambio de clave obligatorio en el primer ingreso**. El alcance del
+  Especialista — solo *Normativos OPR* — se hace cumplir con RLS y con la
+  política del bucket, no escondiendo botones. **Falta ejecutar
+  `supabase-usuarios.sql` y desplegar la función `admin-usuarios`** (Pendientes).
 - **Repo en GitHub** actualizado. ⚠️ **Es público**, no privado (verificado el
   2026-09-04 sin autenticación). No contiene credenciales — solo la clave
   `sb_publishable_` de `config.js`, que es pública por diseño, y el RLS impide
@@ -120,14 +127,28 @@ Navegador (index.html + config.js + lib/supabase.js)
      tabla, porque una puede tenerlo y otra no.
    La barra de pestañas vive **dentro** de Inventario (no como pestaña principal
    aparte) para reutilizar buscador, filtros, visor y asistente.
-9. **Títulos del lote OPR:** salen del índice oficial (denominación + norma de
+9. **Dos perfiles, con el alcance impuesto en la base.** `admin`
+   ("Administrador") y `especialista` ("Especialista"; reemplaza a `lector`).
+   El Especialista ve **solo** `normativos_opr`. Consecuencias resueltas:
+   - RLS: `documentos` solo para administradores; `normativos_opr` para todos.
+   - Los PDF de ambos conjuntos comparten bucket, así que la política de
+     `storage.objects` deja leer al Especialista **solo** los objetos `opr\_%`.
+     De ahí que el formulario de carga anteponga `opr_` cuando el destino es esa
+     tabla: **el prefijo es un control de acceso, no un adorno.**
+   - La política `perfil_propio_update` permitía que alguien se ascendiera solo
+     con un `update`. Lo bloquea ahora el disparador `proteger_rol()`.
+   - Alta y baja de cuentas van por la Edge Function `admin-usuarios`: exigen
+     `service_role`, que nunca puede estar en el navegador.
+   - Una fuente que devuelve 0 filas no genera pestaña, para que el Especialista
+     no vea un "Normativa base 0".
+10. **Títulos del lote OPR:** salen del índice oficial (denominación + norma de
    aprobación), no del nombre del archivo. Cuando una norma tiene varios PDF
    (resolución + documento + anexo), la parte va **delante** en corchetes
    — `[Resolucion] …`, `[Lineamiento] …`, `[Anexo] …` — porque las
    denominaciones llegan a 300 caracteres y al final no se distinguirían.
    En la lista los títulos se recortan a 3 líneas (texto completo en el tooltip
    y en la ficha).
-10. **UI:** columna de directivas angosta (`0.6fr`) y documento grande (`1.4fr`);
+11. **UI:** columna de directivas angosta (`0.6fr`) y documento grande (`1.4fr`);
    denominación "Inventario Normativo SERFOR"; visor de PDF sin panel de miniaturas
    (`#navpanes=0&pagemode=none&view=FitH`).
 
@@ -142,6 +163,8 @@ Navegador (index.html + config.js + lib/supabase.js)
 | `lib/supabase.js` | Librería de Supabase (local) | ✅ Sí |
 | `capibara-serfor.png` | Imagen del botón del asistente | ✅ Sí |
 | `supabase/functions/preguntar/index.ts` | Edge Function del asistente (Deno) | ❌ Se despliega en Supabase |
+| `supabase/functions/admin-usuarios/index.ts` | Edge Function de gestión de cuentas (Deno) | ❌ Se despliega en Supabase |
+| `supabase-usuarios.sql` | Perfiles Administrador/Especialista, alcance y salvaguardas | ❌ Solo instalación |
 | `supabase-setup.sql` | Esquema BD + RLS + bucket (ejecutar 1 vez) | ❌ Solo instalación |
 | `supabase-coleccion.sql` | (Opcional) campo `coleccion` para subdividir una tabla | ❌ Solo instalación |
 | `supabase-tabla-opr.sql` | Crea la tabla `normativos_opr` + RLS. Modelo para futuras tablas | ❌ Solo instalación |
@@ -246,6 +269,12 @@ Navegador (index.html + config.js + lib/supabase.js)
    comprobar igualmente que el inventario carga y que el asistente responde.
    Borrar también las líneas con la clave en el historial de PowerShell:
    `C:\Users\mmontoya\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt`
+0c. **Activar el módulo de cuentas** (nada de esto rompe la app si se posterga):
+   ejecutar `supabase-usuarios.sql` en el SQL Editor y desplegar la función
+   `admin-usuarios` (Edge Functions → Create a new function → pegar
+   `supabase/functions/admin-usuarios/index.ts` → Deploy). Detalle en `LEEME.md`.
+   ⚠️ Tras el SQL, **la Normativa base deja de verse para los no administradores**:
+   confirmar que las cuentas que deban verla tengan rol `admin`.
 1. **Redesplegar la Edge Function `preguntar`** con la última versión de
    `index.ts` (incluye el mensaje "DOCUMENTO GRANDE…" para PDF de +100 páginas) y
    **probar** con el reglamento grande (215 páginas) y con una directiva pequeña.
@@ -257,9 +286,9 @@ Navegador (index.html + config.js + lib/supabase.js)
    copiar el contenido de `publicar/` a `C:\inetpub\wwwroot\normativa\`, crear la
    aplicación en IIS, activar HTTPS, y poner la URL pública en Supabase
    Authentication → URL Configuration (Site URL). Pasos detallados en `LEEME.md`.
-4. **Crear usuarios** para el resto del equipo (Supabase → Authentication → Add
-   user; entran como `lector`; a quien sea admin, `update public.profiles set
-   role='admin' where email='...'`).
+4. **Crear usuarios** para el resto del equipo. Ya no hace falta el panel de
+   Supabase: se hace desde la pestaña **Usuarios** de la aplicación, una vez
+   activado el módulo (punto 0c).
 5. **Documento pendiente:** `RM-324-2015-MINAM` (~62 MB) no se migró por superar el
    límite de 50 MB del plan gratuito de Supabase. Opciones: comprimirlo <50 MB,
    subir de plan, o dejarlo fuera.

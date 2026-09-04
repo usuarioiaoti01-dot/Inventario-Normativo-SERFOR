@@ -13,6 +13,7 @@ inventario-normativo/
 ├── supabase-setup.sql       ← esquema de base de datos + seguridad (ejecutar 1 vez)
 ├── supabase-coleccion.sql   ← (opcional) campo 'coleccion' para subdividir una tabla
 ├── supabase-tabla-opr.sql   ← crea la tabla normativos_opr (modelo para nuevas tablas)
+├── supabase-usuarios.sql    ← perfiles Administrador/Especialista y su alcance
 ├── migrar-a-supabase.mjs    ← sube los 123 PDF actuales a Supabase (Node 18+)
 ├── generar-inventario.ps1   ← genera el catalogo (soporta lotes con -Coleccion / -Anexar)
 ├── inventario.js            ← catálogo local (solo se usa para la migración inicial)
@@ -168,16 +169,53 @@ solo se muestra si esa tabla tiene la columna.
 
 ---
 
-### Dar acceso a más usuarios (compartir)
-1. Publica la página (ver abajo) y comparte la URL.
-2. Crea la cuenta de cada persona en **Authentication → Users → Add user**
-   (o activa invitaciones por correo en Supabase).
-3. Por defecto entran como **lector**. Para hacer a alguien administrador:
-   ```sql
-   update public.profiles set role='admin' where email='persona@serfor.gob.pe';
-   ```
+### Cuentas y perfiles
 
----
+La aplicación tiene dos perfiles, y su alcance se hace cumplir **en la base de
+datos** (reglas RLS), no solo escondiendo botones:
+
+| Perfil | Qué puede hacer |
+|---|---|
+| **Administrador** | Todo: ve las dos pestañas, sube documentos y gestiona cuentas. |
+| **Especialista** | Consulta y descarga **solo** los documentos de *Normativos OPR*. No ve la Normativa base ni puede subir nada. |
+
+> Un especialista no solo deja de ver la pestaña: la consulta a la tabla
+> `documentos` le devuelve cero filas y el bucket le niega los PDF que no lleven
+> el prefijo `opr_`. Aunque manipulara el navegador, no obtendría nada.
+
+### Gestionar cuentas desde la aplicación
+
+Como administrador, pestaña **Usuarios**:
+
+- **Crear cuenta:** correo, nombre, perfil y una **clave inicial** (el botón
+  *Sugerir clave* genera una legible, sin caracteres que se confundan al dictarla).
+  Entrégasela por un medio seguro: **al entrar por primera vez se le exigirá
+  cambiarla** antes de poder usar la aplicación.
+- **Cambiar de perfil:** el desplegable de cada fila pasa de Especialista a
+  Administrador y al revés.
+- **Restablecer clave:** define una nueva clave temporal; a esa persona se le
+  volverá a pedir que la cambie al entrar.
+- **Eliminar cuenta:** pierde el acceso de inmediato.
+
+Salvaguardas: no puedes eliminar tu propia cuenta, ni quitarte a ti mismo el rol
+de administrador, ni dejar la aplicación sin ningún administrador.
+
+### Puesta en marcha del módulo (una sola vez)
+
+1. **SQL.** En **Supabase → SQL Editor → New query**, pega `supabase-usuarios.sql`
+   y pulsa **Run**. Renombra el rol `lector` a `especialista`, añade la marca de
+   cambio de clave, impide que nadie se ascienda solo y ajusta el alcance de
+   documentos y archivos. Es idempotente.
+2. **Edge Function.** En **Edge Functions → Create a new function**, nombre
+   exacto `admin-usuarios`, pega `supabase/functions/admin-usuarios/index.ts` y
+   pulsa **Deploy**. No necesita secretos.
+
+Sin el paso 2, la pestaña Usuarios avisa de que la función no está desplegada;
+el resto de la aplicación sigue funcionando.
+
+> Crear y eliminar cuentas exige la clave `service_role`, que **jamás** puede
+> estar en el navegador. Por eso vive en la función, que comprueba con esa misma
+> clave que quien llama sea administrador antes de operar.
 
 ## Publicar la página
 

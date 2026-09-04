@@ -76,6 +76,24 @@
   .userbox .role{background:rgba(255,255,255,.14);padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
   .icon-btn{background:rgba(255,255,255,.12);border:0;color:#f0f4ec;border-radius:8px;width:34px;height:34px;cursor:pointer;font-size:.95rem}
 
+  /* La cabecera crecio al sumar la pestaña Usuarios: en pantallas angostas se
+     recorta lo prescindible (subtitulo y correo) antes que desbordar la pagina. */
+  @media (max-width:1000px){
+    header.top{padding:0 14px;gap:10px}
+    .brand-txt p{display:none}
+    .navtabs{margin-left:10px}
+    .navtabs button{padding:0 11px;font-size:.82rem}
+  }
+  @media (max-width:760px){
+    .brand-txt h1{font-size:.9rem}
+    #userEmail{display:none}
+    .navtabs button{padding:0 8px;font-size:.78rem}
+  }
+  @media (max-width:560px){
+    .brand-txt{display:none}
+    .userbox .role{display:none}
+  }
+
   .view{flex:1;min-height:0;display:flex;flex-direction:column}
 
   /* Toolbar */
@@ -165,6 +183,28 @@
   .form-card p.hint{margin:0 0 20px;color:var(--ink-soft);font-size:.86rem}
   .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
   .form-grid .full{grid-column:1 / -1}
+
+  /* Modulo de usuarios */
+  .usr-card{max-width:920px;margin:0 auto 22px}
+  .usr-tabla{width:100%;border-collapse:collapse;font-size:.86rem}
+  .usr-tabla th{text-align:left;font-size:.72rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-faint);padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+  .usr-tabla td{padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+  .usr-tabla tr:last-child td{border-bottom:0}
+  .usr-tabla .correo{font-weight:600;color:var(--ink)}
+  .usr-tabla .sec{font-size:.78rem;color:var(--ink-faint)}
+  .usr-tabla select{padding:6px 8px;border:1px solid var(--line-strong);border-radius:7px;background:var(--surface);color:var(--ink);font-family:inherit;font-size:.82rem}
+  .usr-acc{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+  .btn-mini{padding:6px 10px;font-size:.78rem;border-radius:7px;border:1px solid var(--line-strong);background:transparent;color:var(--ink-soft);cursor:pointer;font-family:inherit;font-weight:600}
+  .btn-mini:hover{background:var(--surface-2);color:var(--ink)}
+  .btn-mini.peligro{color:var(--stop);border-color:var(--stop)}
+  .btn-mini.peligro:hover{background:var(--stop);color:#fff}
+  .btn-mini:disabled{opacity:.4;cursor:default}
+  .etq{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:10px;white-space:nowrap}
+  .etq.admin{background:var(--accent);color:#fff}
+  .etq.esp{background:var(--brand-tint);color:var(--brand)}
+  .etq.pend{background:#f4e2c4;color:#7a5410}
+  [data-theme="dark"] .etq.pend{background:#4a3a1c;color:#e6c98a}
+  @media (max-width:640px){ .usr-tabla .ocultable{display:none} }
   @media (max-width:560px){.form-grid{grid-template-columns:1fr}}
   .filedrop{border:2px dashed var(--line-strong);border-radius:10px;padding:22px;text-align:center;color:var(--ink-faint);font-size:.86rem;cursor:pointer}
   .filedrop.has{border-color:var(--brand);color:var(--brand);background:var(--brand-tint)}
@@ -206,6 +246,31 @@
   </form>
 </div>
 
+<!-- ===== Cambio de clave obligatorio (primer ingreso) ===== -->
+<div id="claveScreen" class="auth-screen" hidden>
+  <form class="auth-card" id="claveForm">
+    <div class="seal">SF</div>
+    <h1>Define tu contraseña</h1>
+    <p class="subt">Primer ingreso</p>
+    <p style="font-size:.84rem;color:var(--ink-soft);margin:0 0 18px">
+      La clave que te entregó el administrador es temporal. Elige una propia para continuar.
+    </p>
+    <div id="claveMsg"></div>
+    <div class="field">
+      <label for="clave1">Nueva contraseña</label>
+      <input id="clave1" type="password" autocomplete="new-password" required minlength="8" placeholder="Mínimo 8 caracteres">
+    </div>
+    <div class="field">
+      <label for="clave2">Repítela</label>
+      <input id="clave2" type="password" autocomplete="new-password" required minlength="8">
+    </div>
+    <button class="btn block" id="claveBtn" type="submit">Guardar y entrar</button>
+    <p style="font-size:.76rem;color:var(--ink-faint);text-align:center;margin:16px 0 0">
+      <a href="#" id="claveSalir" style="color:inherit">Salir</a>
+    </p>
+  </form>
+</div>
+
 <!-- ===== Aplicación ===== -->
 <div id="app" hidden>
   <header class="top">
@@ -217,10 +282,11 @@
     <nav class="navtabs">
       <button id="navInv" class="on" onclick="showView('inv')">Inventario</button>
       <button id="navNew" onclick="showView('new')" hidden>Nuevos registros</button>
+      <button id="navUsr" onclick="showView('usr')" hidden>Usuarios</button>
     </nav>
     <div class="top-spacer"></div>
     <div class="userbox">
-      <span class="role" id="roleTag">lector</span>
+      <span class="role" id="roleTag">Especialista</span>
       <span id="userEmail"></span>
     </div>
     <button class="icon-btn" id="themeBtn" title="Cambiar tema">◐</button>
@@ -326,7 +392,61 @@
       </div>
       <div id="noAdmin" class="noadmin" hidden>
         <h2>Solo administradores</h2>
-        <p>Tu cuenta tiene rol de <b>lector</b>. Para agregar documentos, solicita permisos de administrador a la OTI.</p>
+        <p>Tu cuenta tiene rol de <b>Especialista</b>. Para agregar documentos, solicita permisos de administrador a la OTI.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vista: Usuarios (solo administradores) -->
+  <div id="viewUsr" class="view" hidden>
+    <div class="form-view">
+      <form class="form-card usr-card" id="crearUsrForm">
+        <h2>Crear cuenta de acceso</h2>
+        <p class="hint">La clave que definas aquí es temporal: al entrar por primera vez, la persona deberá cambiarla.</p>
+        <div class="form-grid">
+          <div class="field">
+            <label for="nCorreo">Correo institucional *</label>
+            <input id="nCorreo" type="email" required placeholder="nombre@serfor.gob.pe" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="nNombre">Nombre y apellidos</label>
+            <input id="nNombre" placeholder="Ej: Ana Quispe Ramírez" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="nRol">Perfil *</label>
+            <select id="nRol">
+              <option value="especialista">Especialista — consulta y descarga Normativos OPR</option>
+              <option value="admin">Administrador — control total</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="nClave">Clave inicial *</label>
+            <input id="nClave" type="text" required minlength="8" placeholder="Mínimo 8 caracteres" autocomplete="off">
+          </div>
+        </div>
+        <div id="crearUsrMsg"></div>
+        <div style="margin-top:18px;display:flex;gap:10px">
+          <button class="btn" id="crearUsrBtn" type="submit">Crear cuenta</button>
+          <button class="btn ghost" type="button" id="generarClave">Sugerir clave</button>
+        </div>
+      </form>
+
+      <div class="form-card usr-card">
+        <h2>Cuentas registradas</h2>
+        <p class="hint" id="usrResumen">Cargando…</p>
+        <div style="overflow-x:auto">
+          <table class="usr-tabla">
+            <thead>
+              <tr>
+                <th>Cuenta</th><th>Perfil</th>
+                <th class="ocultable">Último acceso</th>
+                <th style="text-align:right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="usrCuerpo"></tbody>
+          </table>
+        </div>
+        <div id="usrMsg" style="margin-top:14px"></div>
       </div>
     </div>
   </div>
@@ -394,7 +514,7 @@
     sb.auth.getSession().then(({data})=>{ data.session ? enterApp(data.session) : show('loginScreen'); });
     sb.auth.onAuthStateChange((_e,session)=>{ session ? enterApp(session) : show('loginScreen'); });
   }
-  function show(id){ ['setupScreen','loginScreen','app'].forEach(x=>document.getElementById(x).hidden = (x!==id)); }
+  function show(id){ ['setupScreen','loginScreen','claveScreen','app'].forEach(x=>document.getElementById(x).hidden = (x!==id)); }
 
   // ---------- Login ----------
   document.getElementById('loginForm').addEventListener('submit', async e=>{
@@ -412,19 +532,58 @@
   document.getElementById('logoutBtn').onclick = async ()=>{ await sb.auth.signOut(); };
 
   // ---------- Entrar a la app ----------
+  const ROTULO_ROL = { admin:'Administrador', especialista:'Especialista' };
+
   async function enterApp(session){
     currentUser = session.user;
     document.getElementById('userEmail').textContent = currentUser.email;
+
+    const { data: prof } = await sb.from('profiles')
+      .select('role, debe_cambiar_clave').eq('id', currentUser.id).single();
+
+    // Primer ingreso con la clave que dio el administrador: no se entra sin cambiarla
+    if(prof && prof.debe_cambiar_clave){ show('claveScreen'); return; }
+
     show('app');
-    // rol
-    const { data: prof } = await sb.from('profiles').select('role').eq('id', currentUser.id).single();
     isAdmin = prof && prof.role === 'admin';
-    document.getElementById('roleTag').textContent = isAdmin ? 'admin' : 'lector';
+    document.getElementById('roleTag').textContent = ROTULO_ROL[prof && prof.role] || 'Especialista';
     document.getElementById('navNew').hidden = !isAdmin;
+    document.getElementById('navUsr').hidden = !isAdmin;
     document.getElementById('adminForm').hidden = !isAdmin;
     document.getElementById('noAdmin').hidden = isAdmin;
+    showView('inv');
     await loadDocs();
   }
+
+  // ---------- Cambio de clave obligatorio ----------
+  document.getElementById('claveSalir').onclick = async e =>{ e.preventDefault(); await sb.auth.signOut(); };
+
+  document.getElementById('claveForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const btn = document.getElementById('claveBtn'), msg = document.getElementById('claveMsg');
+    const c1 = document.getElementById('clave1').value, c2 = document.getElementById('clave2').value;
+    msg.innerHTML = '';
+    if(c1 !== c2){ msg.innerHTML = `<div class="auth-msg err">Las dos contraseñas no coinciden.</div>`; return; }
+    if(c1.length < 8){ msg.innerHTML = `<div class="auth-msg err">Debe tener al menos 8 caracteres.</div>`; return; }
+    btn.disabled = true; btn.textContent = 'Guardando…';
+
+    const { error } = await sb.auth.updateUser({ password: c1 });
+    if(error){
+      msg.innerHTML = `<div class="auth-msg err">${esc(error.message)}</div>`;
+      btn.disabled = false; btn.textContent = 'Guardar y entrar'; return;
+    }
+    // Recien despues de cambiarla se levanta la marca
+    const { error: errPerfil } = await sb.from('profiles')
+      .update({ debe_cambiar_clave:false }).eq('id', currentUser.id);
+    if(errPerfil){
+      msg.innerHTML = `<div class="auth-msg err">Clave cambiada, pero no se pudo registrar: ${esc(errPerfil.message)}</div>`;
+      btn.disabled = false; btn.textContent = 'Guardar y entrar'; return;
+    }
+    document.getElementById('clave1').value = ''; document.getElementById('clave2').value = '';
+    btn.disabled = false; btn.textContent = 'Guardar y entrar';
+    const { data } = await sb.auth.getSession();
+    if(data.session) await enterApp(data.session);
+  });
 
   // ---------- Cargar documentos desde todas las fuentes ----------
   // Una tabla que todavia no existe no rompe la app: se omite esa fuente.
@@ -445,9 +604,10 @@
         if(!noExiste(r.error)) fallos.push(`${r.f.nombre}: ${r.error.message}`);
         continue;   // tabla inexistente = fuente aun no creada
       }
+      if(!(r.data || []).length) continue;   // sin filas visibles: no se ofrece la pestaña
       GRUPOS.push(r.f.nombre);
       // La columna 'coleccion' puede existir en una tabla y no en otra
-      COL_OK[r.f.tabla] = (r.data||[]).length > 0 && Object.prototype.hasOwnProperty.call(r.data[0], 'coleccion');
+      COL_OK[r.f.tabla] = Object.prototype.hasOwnProperty.call(r.data[0], 'coleccion');
       // id se repite entre tablas: la clave de seleccion es tabla + id
       for(const d of (r.data || [])){
         INVENTARIO.push({ ...d, _tabla:r.f.tabla, _grupo:r.f.nombre, _key:`${r.f.tabla}:${d.id}` });
@@ -606,13 +766,148 @@
       <a class="btn ghost" href="${url}" target="_blank" rel="noopener">Abrir en pestaña</a>`;
   }
 
+  // ---------- Módulo de usuarios (solo administradores) ----------
+  // Toda operacion pasa por la Edge Function 'admin-usuarios': crear y eliminar
+  // cuentas exige la clave service_role, que jamas puede estar en el navegador.
+  let USUARIOS = [];
+
+  async function admUsuarios(cuerpo){
+    const { data, error } = await sb.functions.invoke('admin-usuarios', { body: cuerpo });
+    if(error){
+      let detalle = error.message || 'error desconocido';
+      try { const r = await error.context?.json?.(); if(r && r.error) detalle = r.error; } catch(_) {}
+      if(/Failed to send|not found|404/i.test(detalle))
+        detalle = 'La funcion admin-usuarios no esta desplegada en Supabase (ver LEEME.md).';
+      throw new Error(detalle);
+    }
+    if(data && data.error) throw new Error(data.error);
+    return data;
+  }
+
+  const fechaCorta = t => t ? new Date(t).toLocaleDateString('es-PE',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+
+  async function cargarUsuarios(){
+    const cuerpo = document.getElementById('usrCuerpo');
+    const resumen = document.getElementById('usrResumen');
+    cuerpo.innerHTML = `<tr><td colspan="4" class="sec">Cargando…</td></tr>`;
+    try {
+      const r = await admUsuarios({ accion:'listar' });
+      USUARIOS = r.usuarios || [];
+      const admins = USUARIOS.filter(u=>u.role==='admin').length;
+      resumen.textContent = `${USUARIOS.length} cuenta(s): ${admins} administrador(es) y ${USUARIOS.length-admins} especialista(s).`;
+      pintarUsuarios();
+    } catch(e){
+      USUARIOS = [];
+      resumen.textContent = '';
+      cuerpo.innerHTML = `<tr><td colspan="4"><div class="form-msg err">${esc(e.message)}</div></td></tr>`;
+    }
+  }
+
+  function pintarUsuarios(){
+    const cuerpo = document.getElementById('usrCuerpo');
+    if(!USUARIOS.length){ cuerpo.innerHTML = `<tr><td colspan="4" class="sec">Sin cuentas.</td></tr>`; return; }
+    cuerpo.innerHTML = USUARIOS.map((u,i)=>`
+      <tr>
+        <td>
+          <div class="correo">${esc(u.email||'')}${u.soy_yo?' <span class="sec">(tú)</span>':''}</div>
+          <div class="sec">${esc(u.nombre||'')}${u.nombre?' · ':''}alta ${fechaCorta(u.created_at)}</div>
+        </td>
+        <td>
+          <select onchange="cambiarRol(${i}, this.value)" ${u.soy_yo?'disabled title="No puedes cambiar tu propio perfil"':''}>
+            <option value="especialista" ${u.role==='especialista'?'selected':''}>Especialista</option>
+            <option value="admin" ${u.role==='admin'?'selected':''}>Administrador</option>
+          </select>
+          ${u.debe_cambiar_clave?'<div style="margin-top:5px"><span class="etq pend">clave sin estrenar</span></div>':''}
+        </td>
+        <td class="ocultable sec">${fechaCorta(u.ultimo_acceso)}</td>
+        <td>
+          <div class="usr-acc">
+            <button class="btn-mini" onclick="resetearClave(${i})">Restablecer clave</button>
+            <button class="btn-mini peligro" onclick="eliminarUsuario(${i})" ${u.soy_yo?'disabled title="No puedes eliminar tu propia cuenta"':''}>Eliminar</button>
+          </div>
+        </td>
+      </tr>`).join('');
+  }
+
+  const avisoUsr = (texto, ok) => {
+    const el = document.getElementById('usrMsg');
+    el.className = ok ? 'form-msg ok' : 'form-msg err';
+    el.textContent = texto;
+    if(ok) setTimeout(()=>{ el.textContent=''; el.className=''; }, 5000);
+  };
+
+  async function cambiarRol(i, rol){
+    const u = USUARIOS[i]; if(!u) return;
+    if(!confirm(`¿Cambiar el perfil de ${u.email} a ${ROTULO_ROL[rol]}?`)){ pintarUsuarios(); return; }
+    try { await admUsuarios({ accion:'cambiar_rol', id:u.id, rol });
+      avisoUsr(`Perfil de ${u.email} actualizado a ${ROTULO_ROL[rol]}.`, true); await cargarUsuarios();
+    } catch(e){ avisoUsr(e.message, false); pintarUsuarios(); }
+  }
+
+  async function eliminarUsuario(i){
+    const u = USUARIOS[i]; if(!u) return;
+    if(!confirm(`¿Eliminar definitivamente la cuenta ${u.email}?
+
+Perderá el acceso de inmediato. Esta acción no se puede deshacer.`)) return;
+    try { await admUsuarios({ accion:'eliminar', id:u.id });
+      avisoUsr(`Cuenta ${u.email} eliminada.`, true); await cargarUsuarios();
+    } catch(e){ avisoUsr(e.message, false); }
+  }
+
+  async function resetearClave(i){
+    const u = USUARIOS[i]; if(!u) return;
+    const nueva = prompt(`Nueva clave temporal para ${u.email}
+
+Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
+    if(nueva === null) return;
+    if(nueva.trim().length < 8){ avisoUsr('La clave debe tener al menos 8 caracteres.', false); return; }
+    try { await admUsuarios({ accion:'resetear_clave', id:u.id, clave:nueva.trim() });
+      avisoUsr(`Clave de ${u.email} restablecida. Comunícasela por un medio seguro.`, true); await cargarUsuarios();
+    } catch(e){ avisoUsr(e.message, false); }
+  }
+
+  // Clave temporal legible, sin caracteres que se confundan al dictarla
+  function sugerirClave(){
+    const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ', num = '23456789', min = 'abcdefghijkmnpqrstuvwxyz';
+    const al = s => s[Math.floor(Math.random()*s.length)];
+    let c = al(abc);
+    for(let i=0;i<6;i++) c += al(min);
+    c += al(num) + al(num) + '-' + al(abc) + al(min) + al(num);
+    return c;
+  }
+  document.getElementById('generarClave').onclick = ()=>{
+    document.getElementById('nClave').value = sugerirClave();
+  };
+
+  document.getElementById('crearUsrForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const btn = document.getElementById('crearUsrBtn'), msg = document.getElementById('crearUsrMsg');
+    const correo = document.getElementById('nCorreo').value.trim();
+    const clave  = document.getElementById('nClave').value.trim();
+    const rol    = document.getElementById('nRol').value;
+    msg.className=''; msg.textContent='';
+    if(clave.length < 8){ msg.className='form-msg err'; msg.textContent='La clave inicial debe tener al menos 8 caracteres.'; return; }
+    btn.disabled = true; btn.textContent = 'Creando…';
+    try {
+      await admUsuarios({ accion:'crear', email:correo, nombre:document.getElementById('nNombre').value.trim(), clave, rol });
+      msg.className='form-msg ok';
+      msg.textContent = `Cuenta ${correo} creada como ${ROTULO_ROL[rol]}. Entrégale la clave por un medio seguro: se le pedirá cambiarla al entrar.`;
+      e.target.reset();
+      await cargarUsuarios();
+    } catch(err){
+      msg.className='form-msg err'; msg.textContent = err.message;
+    }
+    btn.disabled = false; btn.textContent = 'Crear cuenta';
+  });
+
   // ---------- Navegación entre vistas ----------
   function showView(v){
-    const inv = v==='inv';
-    document.getElementById('viewInv').hidden = !inv;
-    document.getElementById('viewNew').hidden = inv;
-    document.getElementById('navInv').classList.toggle('on', inv);
-    document.getElementById('navNew').classList.toggle('on', !inv);
+    if((v==='new' || v==='usr') && !isAdmin) v = 'inv';   // solo administradores
+    const vistas = { inv:'viewInv', new:'viewNew', usr:'viewUsr' };
+    const navs   = { inv:'navInv',  new:'navNew',  usr:'navUsr'  };
+    Object.entries(vistas).forEach(([k,id])=> document.getElementById(id).hidden = (k!==v));
+    Object.entries(navs).forEach(([k,id])=> document.getElementById(id).classList.toggle('on', k===v));
+    if(v==='usr') cargarUsuarios();
   }
 
   // ---------- Asistente IA flotante ----------
@@ -714,7 +1009,11 @@
     btn.disabled = true; btn.textContent = 'Subiendo…'; msg.className=''; msg.textContent='';
 
     const titulo = document.getElementById('uTitulo').value.trim();
-    const path = `${slug(titulo)}_${Date.now()}.pdf`;
+    const tablaDestino = document.getElementById('uFuente').value || (FUENTES[0] && FUENTES[0].tabla) || 'documentos';
+    // El prefijo no es cosmetico: la regla de storage lo usa para decidir quien
+    // puede leer el archivo (ver supabase-usuarios.sql).
+    const prefijo = tablaDestino === 'normativos_opr' ? 'opr_' : '';
+    const path = `${prefijo}${slug(titulo)}_${Date.now()}.pdf`;
 
     // 1) subir al Storage
     const up = await sb.storage.from('documentos').upload(path, file, { contentType:'application/pdf', upsert:false });
@@ -730,9 +1029,7 @@
       kb: Math.round(file.size/1024),
       archivo: path, original: file.name, created_by: currentUser.id
     };
-    // Tabla destino: la elegida, o la primera disponible si el selector esta oculto
-    const selFuente = document.getElementById('uFuente');
-    const tabla = selFuente.value || (FUENTES[0] && FUENTES[0].tabla) || 'documentos';
+    const tabla = tablaDestino;
     const nombreFuente = (FUENTES.find(f=>f.tabla===tabla)||{}).nombre || COL_BASE;
     if(COL_OK[tabla]) row.coleccion = document.getElementById('uCol').value.trim() || nombreFuente;
     const ins = await sb.from(tabla).insert(row);
