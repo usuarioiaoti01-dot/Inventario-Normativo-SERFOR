@@ -151,9 +151,15 @@ Navegador (index.html + config.js + lib/supabase.js)
    denominaciones llegan a 300 caracteres y al final no se distinguirían.
    En la lista los títulos se recortan a 3 líneas (texto completo en el tooltip
    y en la ficha).
-11. **UI:** columna de directivas angosta (`0.6fr`) y documento grande (`1.4fr`);
-   denominación "Inventario Normativo SERFOR"; visor de PDF sin panel de miniaturas
-   (`#navpanes=0&pagemode=none&view=FitH`).
+11. **UI:** columna de la lista `0.9fr` y visor `1.1fr` (45/55); cabecera
+   institucional a 76 px con título 1.3rem y subtítulo .86rem; pestaña rotulada
+   "Inventario OPR"; visor de PDF sin miniaturas y a tamaño real
+   (`#navpanes=0&pagemode=none&zoom=100`).
+   ⚠️ Con `zoom=100` una página A4 necesita ~794 px: el visor solo la muestra
+   entera si la ventana pasa de **~1450 px** de ancho. Por debajo, el PDF se
+   desplaza horizontalmente dentro de su propio visor. Si molesta, hay dos
+   salidas: estrechar la lista (`0.8fr 1.2fr` baja el umbral a ~1360 px) o
+   volver a `view=FitH`, que ajustaba al ancho disponible.
 
 ---
 

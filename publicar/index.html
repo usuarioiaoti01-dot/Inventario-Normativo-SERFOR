@@ -124,7 +124,7 @@
   .colltabs button i{font-style:normal;font-size:.7rem;font-weight:700;background:var(--surface-2);color:var(--ink-faint);border-radius:10px;padding:1px 7px;font-variant-numeric:tabular-nums}
   .colltabs button.on i{background:var(--brand-tint);color:var(--brand)}
 
-  .workspace{display:grid;grid-template-columns:0.6fr 1.4fr;flex:1;min-height:0}
+  .workspace{display:grid;grid-template-columns:0.9fr 1.1fr;flex:1;min-height:0}
   @media (max-width:900px){.workspace{grid-template-columns:1fr}}
 
   .list-pane{overflow-y:auto;border-right:1px solid var(--line);min-height:0}
@@ -767,7 +767,8 @@
     const acts = document.getElementById('docActions');
     if(error || !data){ acts.innerHTML = `<span style="font-size:.8rem;color:var(--stop)">No se pudo abrir el archivo: ${esc(error?error.message:'sin URL')}</span>`; return; }
     const url = data.signedUrl;
-    document.getElementById('pdfFrame').src = url + (url.includes('#')?'':'#') + 'navpanes=0&pagemode=none&view=FitH';
+    // zoom=100: tamaño real del documento (antes 'view=FitH', que lo ajustaba al ancho)
+    document.getElementById('pdfFrame').src = url + (url.includes('#')?'':'#') + 'navpanes=0&pagemode=none&zoom=100';
     document.getElementById('pdfWrap').hidden = false;
     acts.innerHTML = `
       <a class="btn" href="${url}" download="${esc(d.original||d.titulo)}.pdf">
