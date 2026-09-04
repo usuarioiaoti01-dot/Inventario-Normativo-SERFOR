@@ -44,6 +44,15 @@ alter table public.profiles alter column role set default 'especialista';
 create or replace function public.proteger_rol()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
+  -- Sin usuario final detras (auth.uid() nulo) la operacion viene del servidor:
+  -- la Edge Function 'admin-usuarios' actuando con service_role, que ya verifico
+  -- por su cuenta que quien llama es administrador. Ahi no se estorba.
+  --   Un anonimo no puede llegar hasta aqui: las politicas RLS de profiles exigen
+  --   auth.uid() = id o is_admin(), asi que su update no alcanza ninguna fila.
+  if auth.uid() is null then
+    return new;
+  end if;
+
   if new.role is distinct from old.role and not public.is_admin() then
     raise exception 'Solo un administrador puede cambiar el rol.';
   end if;

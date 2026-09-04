@@ -136,7 +136,10 @@ Navegador (index.html + config.js + lib/supabase.js)
      De ahí que el formulario de carga anteponga `opr_` cuando el destino es esa
      tabla: **el prefijo es un control de acceso, no un adorno.**
    - La política `perfil_propio_update` permitía que alguien se ascendiera solo
-     con un `update`. Lo bloquea ahora el disparador `proteger_rol()`.
+     con un `update`. Lo bloquea ahora el disparador `proteger_rol()`, que
+     **debe dejar pasar las operaciones con `auth.uid()` nulo**: son las de la
+     Edge Function actuando con `service_role`. Sin esa excepcion, el disparador
+     bloquea tambien el alta de cuentas (ocurrio la primera vez).
    - Alta y baja de cuentas van por la Edge Function `admin-usuarios`: exigen
      `service_role`, que nunca puede estar en el navegador.
    - Una fuente que devuelve 0 filas no genera pestaña, para que el Especialista
