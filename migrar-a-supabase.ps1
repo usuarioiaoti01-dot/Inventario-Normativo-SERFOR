@@ -112,7 +112,13 @@ foreach($d in $catalogo){
       tipo = $d.tipo; titulo = $d.titulo; entidad = $d.entidad; anio = $anio
       estado = $estado; coleccion = $col; fecha = $d.fecha; kb = $kb
       archivo = $local; original = $d.original
-    } | ConvertTo-Json -Compress
+    }
+    # Agrupacion de normas con varios documentos (ver supabase-carpetas.sql).
+    # Solo se envian si el catalogo los trae: asi el script sigue sirviendo para
+    # tablas que todavia no tengan esos campos.
+    if($d.PSObject.Properties.Name -contains 'carpeta' -and $d.carpeta){ $row['carpeta'] = $d.carpeta }
+    if($d.PSObject.Properties.Name -contains 'parte'   -and $d.parte  ){ $row['parte']   = $d.parte   }
+    $row = $row | ConvertTo-Json -Compress
     # charset=utf-8 explicito: sin el, PS 5.1 manda el cuerpo en ASCII y las tildes se pierden
     Invoke-RestMethod -Method Post -Uri "$SupabaseUrl/rest/v1/$Tabla" `
       -Headers ($headers + @{ Prefer = 'return=minimal' }) `

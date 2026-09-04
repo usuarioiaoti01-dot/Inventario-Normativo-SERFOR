@@ -45,6 +45,12 @@ Contacto/admin: `mmontoya@serfor.gob.pe`.
   Especialista — solo *Normativos OPR* — se hace cumplir con RLS y con la
   política del bucket, no escondiendo botones. **Falta ejecutar
   `supabase-usuarios.sql` y desplegar la función `admin-usuarios`** (Pendientes).
+- **Lote DOCUMENTOS COMPLEMENTO preparado (2026-09-04):** 139 carpetas, una por
+  norma, con 222 PDF. De ellos **115 son nuevos** (209,6 MB) y **102 ya estaban
+  cargados**: a estos NO se les vuelve a subir nada, solo se les asigna su carpeta.
+  El lote OPR pasa de 116 a **231 documentos** en **132 normas**, de las cuales
+  **82 tienen varios archivos** y se muestran anidadas.
+  **Falta ejecutar el SQL y migrar** (Pendientes).
 - **Repo en GitHub** actualizado. ⚠️ **Es público**, no privado (verificado el
   2026-09-04 sin autenticación). No contiene credenciales — solo la clave
   `sb_publishable_` de `config.js`, que es pública por diseño, y el RLS impide
@@ -144,14 +150,26 @@ Navegador (index.html + config.js + lib/supabase.js)
      `service_role`, que nunca puede estar en el navegador.
    - Una fuente que devuelve 0 filas no genera pestaña, para que el Especialista
      no vea un "Normativa base 0".
-10. **Títulos del lote OPR:** salen del índice oficial (denominación + norma de
+10. **Normas con varios documentos = campos `carpeta` + `parte`.** Una norma
+   puede constar de resolución, documento, anexo y expediente. Se agrupan por
+   `carpeta` y se anidan en la lista. Criterios:
+   - Solo se anida si la norma tiene **más de un** documento; con uno solo se
+     pinta como fila simple.
+   - Pulsar la norma abre su **resolución** en el visor y despliega el resto;
+     el chevron pliega sin cambiar el documento abierto.
+   - Al buscar, los grupos se despliegan solos y la fila padre indica
+     "N de M documentos" para que se vea que el filtro deja fuera hermanos.
+   - La deduplicación compara **solo contra archivos `opr_`**. Si un PDF coincide
+     con uno de la Normativa base NO cuenta como cargado: el Especialista no ve
+     esa colección y su carpeta quedaría incompleta.
+11. **Títulos del lote OPR:** salen del índice oficial (denominación + norma de
    aprobación), no del nombre del archivo. Cuando una norma tiene varios PDF
    (resolución + documento + anexo), la parte va **delante** en corchetes
    — `[Resolucion] …`, `[Lineamiento] …`, `[Anexo] …` — porque las
    denominaciones llegan a 300 caracteres y al final no se distinguirían.
    En la lista los títulos se recortan a 3 líneas (texto completo en el tooltip
    y en la ficha).
-11. **UI:** columna de la lista `0.9fr` y visor `1.1fr` (45/55); cabecera
+12. **UI:** columna de la lista `0.9fr` y visor `1.1fr` (45/55); cabecera
    institucional a 76 px con título 1.3rem y subtítulo .86rem; pestaña rotulada
    "Inventario OPR"; visor de PDF sin miniaturas y a tamaño real
    (`#navpanes=0&pagemode=none&zoom=100`).
@@ -174,6 +192,10 @@ Navegador (index.html + config.js + lib/supabase.js)
 | `supabase/functions/preguntar/index.ts` | Edge Function del asistente (Deno) | ❌ Se despliega en Supabase |
 | `supabase/functions/admin-usuarios/index.ts` | Edge Function de gestión de cuentas (Deno) | ❌ Se despliega en Supabase |
 | `supabase-usuarios.sql` | Perfiles Administrador/Especialista, alcance y salvaguardas | ❌ Solo instalación |
+| `supabase-carpetas.sql` | Campos `carpeta` y `parte`: normas con varios documentos | ❌ Solo instalación |
+| `generar-inventario-complemento.ps1` | Cataloga el lote por carpetas y detecta lo ya cargado | ❌ Solo migración |
+| `inventario-complemento.js` | Catálogo de los 115 PDF nuevos | ❌ Solo migración |
+| `actualizar-carpetas-opr.sql` | Agrupa los 102 ya cargados sin resubirlos (generado) | ❌ Solo migración |
 | `supabase-setup.sql` | Esquema BD + RLS + bucket (ejecutar 1 vez) | ❌ Solo instalación |
 | `supabase-coleccion.sql` | (Opcional) campo `coleccion` para subdividir una tabla | ❌ Solo instalación |
 | `supabase-tabla-opr.sql` | Crea la tabla `normativos_opr` + RLS. Modelo para futuras tablas | ❌ Solo instalación |
@@ -284,6 +306,13 @@ Navegador (index.html + config.js + lib/supabase.js)
    `supabase/functions/admin-usuarios/index.ts` → Deploy). Detalle en `LEEME.md`.
    ⚠️ Tras el SQL, **la Normativa base deja de verse para los no administradores**:
    confirmar que las cuentas que deban verla tengan rol `admin`.
+0d. **Incorporar el lote DOCUMENTOS COMPLEMENTO** (en este orden):
+   1) `supabase-carpetas.sql` en el SQL Editor (crea `carpeta` y `parte`).
+   2) `actualizar-carpetas-opr.sql` (agrupa los 102 ya cargados; 102 sentencias).
+   3) `pwsh -ExecutionPolicy Bypass -File .\migrar-a-supabase.ps1 -SupabaseUrl "..." -ServiceKey "..." -Inventario "inventario-complemento.js" -Tabla "normativos_opr" -Anexar`
+   ⚠️ `-Anexar` es imprescindible: sin él se borran los 116 que ya están.
+   Suma 209,6 MB al bucket (quedaría en ~630 MB de 1 GB del plan gratuito).
+   Al terminar: 231 documentos en la pestaña Normativos OPR.
 1. **Redesplegar la Edge Function `preguntar`** con la última versión de
    `index.ts` (incluye el mensaje "DOCUMENTO GRANDE…" para PDF de +100 páginas) y
    **probar** con el reglamento grande (215 páginas) y con una directiva pequeña.

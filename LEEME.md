@@ -14,6 +14,7 @@ inventario-normativo/
 ├── supabase-coleccion.sql   ← (opcional) campo 'coleccion' para subdividir una tabla
 ├── supabase-tabla-opr.sql   ← crea la tabla normativos_opr (modelo para nuevas tablas)
 ├── supabase-usuarios.sql    ← perfiles Administrador/Especialista y su alcance
+├── supabase-carpetas.sql    ← campos carpeta y parte (normas con varios documentos)
 ├── migrar-a-supabase.mjs    ← sube los 123 PDF actuales a Supabase (Node 18+)
 ├── generar-inventario.ps1   ← genera el catalogo (soporta lotes con -Coleccion / -Anexar)
 ├── inventario.js            ← catálogo local (solo se usa para la migración inicial)
@@ -80,6 +81,13 @@ Al terminar, tendrás los 123 PDF y su metadata en Supabase.
 - **Consultar:** buscar, filtrar por tipo/entidad/año y ver el PDF incrustado.
 - **Nuevos registros** (solo administradores): pestaña para subir un PDF nuevo con
   sus datos; queda guardado en la base y visible para todos al instante.
+- **Normas con varios documentos:** una norma puede constar de resolución,
+  documento, anexo y expediente. Se muestran **anidados** bajo la norma, que
+  aparece como una fila plegable con el número de documentos que agrupa.
+  Al pulsarla se abre su resolución y se despliega el resto; la flecha de la
+  izquierda pliega y despliega sin cambiar lo que se está viendo. Al buscar,
+  los grupos se abren solos y la fila indica "N de M documentos" cuando el
+  filtro deja fuera a alguno de sus hermanos.
 - **Pestañas por conjunto:** cada tabla de normativa es una pestaña sobre el
   buscador — *Todas | Normativa base | Normativos OPR* — con su conteo. Filtra la
   lista y se combina con el buscador y los filtros de tipo/entidad/año. Si solo

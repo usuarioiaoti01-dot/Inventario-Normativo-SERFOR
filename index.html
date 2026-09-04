@@ -134,6 +134,19 @@
   .row:hover{background:var(--brand-tint)}
   .row.active{background:var(--brand-tint);box-shadow:inset 3px 0 0 var(--brand)}
   .doc-ico{width:34px;height:34px;flex:none;border-radius:7px;background:var(--brand-tint);color:var(--brand);display:grid;place-items:center;margin-top:2px}
+
+  /* Normas con varios documentos: fila padre plegable e hijos indentados */
+  .row.norma{background:var(--surface-2)}
+  .row.norma:hover{background:var(--brand-tint)}
+  .chev{width:34px;height:34px;flex:none;border:0;border-radius:7px;background:var(--brand-tint);color:var(--brand);cursor:pointer;font-size:.8rem;line-height:1;margin-top:2px;font-family:inherit}
+  .chev:hover{background:var(--brand);color:#fff}
+  .row.hijo{padding-left:52px;background:var(--surface);position:relative}
+  .row.hijo::before{content:"";position:absolute;left:30px;top:0;bottom:0;width:2px;background:var(--line-strong)}
+  .row.hijo .doc-ico{width:26px;height:26px;background:transparent;color:var(--ink-faint)}
+  .row.hijo .name{font-size:.84rem;color:var(--ink-soft)}
+  .row.hijo.active .name{color:var(--ink)}
+  .pchip{font-size:.66rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:2px 7px;border-radius:5px;background:var(--line);color:var(--ink-soft);white-space:nowrap}
+  .nchip{font-size:.7rem;font-weight:700;color:var(--brand);background:var(--brand-tint);border-radius:10px;padding:1px 8px;white-space:nowrap}
   /* Titulos largos (denominaciones de hasta ~300 caracteres): 3 lineas como maximo.
      El texto completo queda en el tooltip y en la ficha del documento. */
   .row-main .name{font-size:.9rem;color:var(--ink);font-weight:500;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
@@ -503,6 +516,8 @@
 
   let sb = null, INVENTARIO = [], isAdmin = false, currentUser = null;
   let GRUPOS = [];             // fuentes que respondieron (las tablas que existen)
+  let CARPETAS = new Map();    // norma -> sus documentos (resolucion, anexo, etc.)
+  let VISIBLES = [];           // carpetas pintadas en el ultimo render, por indice
   const COL_OK = {};           // por tabla: si tiene la columna 'coleccion' (ver supabase-coleccion.sql)
   // Fuentes de datos: cada tabla de Supabase es una pestaña del inventario.
   // Para sumar otro conjunto: crear su tabla (ver supabase-tabla-opr.sql como
@@ -514,7 +529,7 @@
   ];
   const COL_BASE = "Normativa base";   // coleccion de los documentos ya cargados
   // grupo:"" = todas las fuentes  |  col:"" = todas las colecciones de la fuente activa
-  const state = { q:"", tipo:"", ent:"", year:"", grupo:"", col:"", active:null };
+  const state = { q:"", tipo:"", ent:"", year:"", grupo:"", col:"", active:null, abiertas:new Set() };
 
   // ---------- Arranque ----------
   function boot(){
@@ -629,6 +644,7 @@
     }
     if(fallos.length) console.warn('Fuentes con error:', fallos.join(' | '));
 
+    indexarCarpetas();
     buildFuenteSelect(); buildColTabs(); buildColList(); buildFilters(); render();
   }
 
@@ -718,28 +734,103 @@
     });
   }
 
+  // Una norma puede constar de varios PDF que se complementan (resolucion,
+  // documento, anexo, expediente). Se agrupan por 'carpeta' y se anidan.
+  function indexarCarpetas(){
+    CARPETAS = new Map();
+    INVENTARIO.forEach(d=>{
+      if(!d.carpeta) return;
+      if(!CARPETAS.has(d.carpeta)) CARPETAS.set(d.carpeta, []);
+      CARPETAS.get(d.carpeta).push(d);
+    });
+  }
+  // Solo se anida si la norma tiene MAS de un documento
+  const esAnidable = d => d.carpeta && (CARPETAS.get(d.carpeta)||[]).length > 1;
+
+  const ORDEN_PARTE = ['Resolucion','Documento','Anexo','Expediente'];
+  const ordenarPartes = arr => arr.slice().sort((a,b)=>{
+    const x=ORDEN_PARTE.indexOf(a.parte), y=ORDEN_PARTE.indexOf(b.parte);
+    return (x<0?9:x)-(y<0?9:y);
+  });
+  // El documento principal de una norma es su resolucion aprobatoria
+  const principal = docs => docs.find(d=>d.parte==='Resolucion') || ordenarPartes(docs)[0];
+
+  function alternarCarpeta(i){
+    const c = VISIBLES[i]; if(!c) return;
+    if(state.abiertas.has(c)) state.abiertas.delete(c); else state.abiertas.add(c);
+    render();
+  }
+  // Al pulsar la norma: se abre su resolucion en el visor y se despliegan los complementos
+  function abrirCarpeta(i){
+    const c = VISIBLES[i]; if(!c) return;
+    state.abiertas.add(c);
+    const p = principal(CARPETAS.get(c) || []);
+    if(p) select(p._key); else render();
+  }
+
   function render(){
     const items = filtered();
     const universo = state.grupo ? INVENTARIO.filter(d=>d._grupo===state.grupo).length : INVENTARIO.length;
     document.getElementById('countPill').textContent = `${items.length} de ${universo}`;
     const pane = document.getElementById('listPane');
     if(!items.length){ pane.innerHTML=`<div class="empty">Sin resultados.</div>`; return; }
+
+    const buscando = state.q.trim() !== "";
+    VISIBLES = [];
     const byTipo = {};
     items.forEach(d=>{ (byTipo[d.tipo]=byTipo[d.tipo]||[]).push(d); });
+
+    const filaDoc = (d, hijo) => {
+      const cls = TIPOCLS[d.tipo]||"--brand";
+      const meta = hijo
+        ? `<span class="pchip">${esc(d.parte||'Documento')}</span>${d.kb?`<span>${d.kb} KB</span>`:''}`
+        : `<span class="tchip" style="background:var(${cls})">${esc(d.tipo)}</span><span>${esc(d.entidad||'')}</span>${d.anio?`<span>· ${d.anio}</span>`:''}`;
+      return `<div class="row ${hijo?'hijo':''} ${state.active===d._key?'active':''}" onclick="select('${d._key}')">
+        <div class="doc-ico"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
+        <div class="row-main">
+          <div class="name" title="${esc(d.titulo)}">${esc(d.titulo)}</div>
+          <div class="meta">${meta}</div>
+        </div>
+        ${hijo?'':`<span class="badge ${stCls(d.estado)}">${esc(d.estado||'Vigente')}</span>`}
+      </div>`;
+    };
+
     let html="";
     Object.keys(byTipo).sort((a,b)=>{const x=ORDEN.indexOf(a),y=ORDEN.indexOf(b);return (x<0?99:x)-(y<0?99:y)}).forEach(tp=>{
-      const arr = byTipo[tp].sort((a,b)=>(b.anio||0)-(a.anio||0));
+      const arr = byTipo[tp];
       html += `<div class="group-head">${esc(tp)}<span>${arr.length}</span></div>`;
+
+      const grupos = new Map(), sueltos = [];
       arr.forEach(d=>{
-        const cls = TIPOCLS[d.tipo]||"--brand";
-        html += `<div class="row ${state.active===d._key?'active':''}" onclick="select('${d._key}')">
-          <div class="doc-ico"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
+        if(esAnidable(d)){
+          if(!grupos.has(d.carpeta)) grupos.set(d.carpeta, []);
+          grupos.get(d.carpeta).push(d);
+        } else sueltos.push(d);
+      });
+
+      const entradas = [
+        ...[...grupos.entries()].map(([c,vis])=>({ carpeta:c, vis, anio:Math.max(...vis.map(d=>d.anio||0)) })),
+        ...sueltos.map(d=>({ doc:d, anio:d.anio||0 }))
+      ].sort((a,b)=> b.anio - a.anio);
+
+      entradas.forEach(e=>{
+        if(e.doc){ html += filaDoc(e.doc, false); return; }
+        const todos = CARPETAS.get(e.carpeta) || [];
+        const abierta = state.abiertas.has(e.carpeta) || buscando;
+        const i = VISIBLES.push(e.carpeta) - 1;
+        const cab = principal(e.vis) || e.vis[0];
+        const cls = TIPOCLS[cab.tipo]||"--brand";
+        const parcial = e.vis.length < todos.length;
+        const cuenta = parcial ? `${e.vis.length} de ${todos.length}` : `${todos.length}`;
+        html += `<div class="row norma ${abierta?'abierta':''}" onclick="abrirCarpeta(${i})">
+          <button class="chev" onclick="event.stopPropagation();alternarCarpeta(${i})" aria-label="${abierta?'Plegar':'Desplegar'}">${abierta?'▾':'▸'}</button>
           <div class="row-main">
-            <div class="name" title="${esc(d.titulo)}">${esc(d.titulo)}</div>
-            <div class="meta"><span class="tchip" style="background:var(${cls})">${esc(d.tipo)}</span><span>${esc(d.entidad||'')}</span>${d.anio?`<span>· ${d.anio}</span>`:''}</div>
+            <div class="name" title="${esc(e.carpeta)}">${esc(e.carpeta)}</div>
+            <div class="meta"><span class="tchip" style="background:var(${cls})">${esc(cab.tipo)}</span><span>${esc(cab.entidad||'')}</span>${cab.anio?`<span>· ${cab.anio}</span>`:''}<span class="nchip">${cuenta} documentos</span></div>
           </div>
-          <span class="badge ${stCls(d.estado)}">${esc(d.estado||'Vigente')}</span>
+          <span class="badge ${stCls(cab.estado)}">${esc(cab.estado||'Vigente')}</span>
         </div>`;
+        if(abierta) ordenarPartes(e.vis).forEach(d=>{ html += filaDoc(d, true); });
       });
     });
     pane.innerHTML = html;
