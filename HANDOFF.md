@@ -38,7 +38,16 @@ Contacto/admin: `mmontoya@serfor.gob.pe`.
   Subidos: 116, fallidos: 0. Los PDF están en el mismo bucket `documentos` con
   prefijo `opr_`, así que el visor y el asistente IA los abren sin cambios.
   Fuente y catálogo: `Documentos Normativos OPR/` e `inventario-opr.js`.
-- **Repo en GitHub** actualizado.
+- **Repo en GitHub** actualizado. ⚠️ **Es público**, no privado (verificado el
+  2026-09-04 sin autenticación). No contiene credenciales — solo la clave
+  `sb_publishable_` de `config.js`, que es pública por diseño, y el RLS impide
+  que un anónimo lea una sola fila. Queda a decisión de la OTI si debe pasar a
+  privado.
+- **Demo en GitHub Pages** (2026-09-04): `https://usuarioiaoti01-dot.github.io/Inventario-Normativo-SERFOR/`,
+  servida desde la rama **`gh-pages`**, que contiene Únicamente el paquete de
+  `publicar/` (index.html, config.js, lib/, imagen) más `.nojekyll`. **No** expone
+  código fuente, catálogos ni scripts. Es solo para enseñar la app a la Dirección
+  antes del despliegue definitivo; **el destino oficial sigue siendo IIS**.
 - **Aún NO publicado** en el servidor de SERFOR (paquete listo, ver Pendientes).
 
 ---
@@ -48,7 +57,8 @@ Contacto/admin: `mmontoya@serfor.gob.pe`.
 | Dato | Valor |
 |---|---|
 | Carpeta del proyecto | `C:\Users\mmontoya\Desarrollo Claude\inventario-normativo` |
-| Repo GitHub (privado) | `https://github.com/usuarioiaoti01-dot/Inventario-Normativo-SERFOR` |
+| Repo GitHub (**PÚBLICO**) | `https://github.com/usuarioiaoti01-dot/Inventario-Normativo-SERFOR` |
+| Demo en GitHub Pages | `https://usuarioiaoti01-dot.github.io/Inventario-Normativo-SERFOR/` (rama `gh-pages`) |
 | Proyecto Supabase (ref) | `armvuvoluoxspfjpefex` → `https://armvuvoluoxspfjpefex.supabase.co` |
 | Región Supabase | us-east-1 |
 | Usuario admin de la app | `mmontoya@serfor.gob.pe` (rol `admin` en tabla `profiles`) |
@@ -171,6 +181,15 @@ Navegador (index.html + config.js + lib/supabase.js)
   ni JWT `service_role` (`eyJ...`) en archivos versionados.
 - Las claves `service_role`/`sb_secret` quedaron **visibles en capturas** del chat →
   ver Pendientes (rotarlas).
+
+**Publicación de la demo (rama `gh-pages`)**
+- Se genera desde `publicar/` con un worktree huérfano, para no mezclarla con `main`:
+  `git worktree add --orphan -b gh-pages <carpeta temporal>`, copiar el contenido de
+  `publicar/`, añadir `.nojekyll`, commit y `git push -u origin gh-pages`.
+- Para **actualizar la demo** tras cambiar la app: repetir ese procedimiento
+  (o hacer checkout de `gh-pages` en un worktree y volver a copiar `publicar/`).
+  La demo **no** se actualiza sola al empujar `main`.
+- `web.config` se deja fuera: es especifico de IIS y en Pages es inerte.
 
 **Git**
 - Mensajes de commit **en una sola línea** (`git commit -m "..."`). Los mensajes
