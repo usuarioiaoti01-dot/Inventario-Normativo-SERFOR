@@ -108,11 +108,17 @@
 
   /* Toolbar */
   .toolbar{background:var(--surface);border-bottom:1px solid var(--line);padding:12px 24px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;flex:none}
-  .search{position:relative;flex:1 1 300px;min-width:220px}
-  .search input{width:100%;padding:10px 12px 10px 38px;border:1px solid var(--line-strong);border-radius:var(--radius);background:var(--bg);color:var(--ink);font-size:.92rem}
+  .search{position:relative;flex:0 1 330px;min-width:170px}
+  .search input{width:100%;padding:7px 10px 7px 32px;border:1px solid var(--line-strong);border-radius:var(--radius);background:var(--bg);color:var(--ink);font-size:.85rem}
   .search input:focus{outline:2px solid var(--brand);outline-offset:1px;border-color:var(--brand)}
-  .search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--ink-faint)}
-  select.filter{padding:10px 12px;border:1px solid var(--line-strong);border-radius:var(--radius);background:var(--surface);color:var(--ink);font-size:.86rem;cursor:pointer}
+  .search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--ink-faint)}
+  input.filter{padding:7px 10px;border:1px solid var(--line-strong);border-radius:var(--radius);background:var(--surface);color:var(--ink);font-size:.82rem;font-family:inherit}
+  input.filter:focus{outline:2px solid var(--brand);outline-offset:1px}
+  .fecha-caja{display:flex;align-items:center;gap:6px}
+  .fecha-caja label{font-size:.78rem;color:var(--ink-soft);white-space:nowrap}
+  .btn-limpiar{border:0;background:transparent;color:var(--ink-faint);cursor:pointer;font-size:1rem;line-height:1;padding:0 2px;font-family:inherit}
+  .btn-limpiar:hover{color:var(--stop)}
+  select.filter{padding:7px 10px;border:1px solid var(--line-strong);border-radius:var(--radius);background:var(--surface);color:var(--ink);font-size:.82rem;cursor:pointer}
   select.filter:focus{outline:2px solid var(--brand);outline-offset:1px}
   .count-pill{font-size:.8rem;color:var(--ink-soft);margin-left:auto;font-variant-numeric:tabular-nums}
 
@@ -124,7 +130,7 @@
   .colltabs button i{font-style:normal;font-size:.7rem;font-weight:700;background:var(--surface-2);color:var(--ink-faint);border-radius:10px;padding:1px 7px;font-variant-numeric:tabular-nums}
   .colltabs button.on i{background:var(--brand-tint);color:var(--brand)}
 
-  .workspace{display:grid;grid-template-columns:0.9fr 1.1fr;flex:1;min-height:0}
+  .workspace{display:grid;grid-template-columns:0.6fr 1.4fr;flex:1;min-height:0}
   @media (max-width:900px){.workspace{grid-template-columns:1fr}}
 
   .list-pane{overflow-y:auto;border-right:1px solid var(--line);min-height:0}
@@ -328,6 +334,11 @@
       <select class="filter" id="fEnt"><option value="">Toda entidad</option></select>
       <select class="filter" id="fYear"><option value="">Todos los años</option></select>
       <select class="filter" id="fCol" hidden><option value="">Toda colección</option></select>
+      <span class="fecha-caja">
+        <label for="fFecha">Día</label>
+        <input class="filter" type="date" id="fFecha" title="Mostrar solo los documentos de esa fecha">
+        <button class="btn-limpiar" id="fFechaX" type="button" title="Quitar el filtro de fecha" hidden>✕</button>
+      </span>
       <span class="count-pill" id="countPill"></span>
     </div>
     <div class="workspace">
@@ -529,7 +540,7 @@
   ];
   const COL_BASE = "Normativa base";   // coleccion de los documentos ya cargados
   // grupo:"" = todas las fuentes  |  col:"" = todas las colecciones de la fuente activa
-  const state = { q:"", tipo:"", ent:"", year:"", grupo:"", col:"", active:null, abiertas:new Set() };
+  const state = { q:"", tipo:"", ent:"", year:"", grupo:"", col:"", fecha:"", active:null, abiertas:new Set() };
 
   // ---------- Arranque ----------
   function boot(){
@@ -721,15 +732,26 @@
     if(clave && !sigueDisponible) state[clave] = "";
   }
 
+  // Compara sin distinguir tildes ni mayusculas
+  const sinAcentos = t => String(t).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+
   function filtered(){
-    const q = state.q.toLowerCase();
+    const q = sinAcentos(state.q.trim());
     return INVENTARIO.filter(d=>{
       if(state.grupo && d._grupo!==state.grupo) return false;
       if(state.col && d.coleccion!==state.col) return false;
       if(state.tipo && d.tipo!==state.tipo) return false;
       if(state.ent && d.entidad!==state.ent) return false;
       if(state.year && String(d.anio)!==state.year) return false;
-      if(q){ const hay=(d.titulo+" "+d.tipo+" "+d.entidad+" "+(d.anio||"")+" "+(d.original||"")+" "+(d.coleccion||"")).toLowerCase(); if(!hay.includes(q)) return false; }
+      if(state.fecha && d.fecha !== state.fecha) return false;
+      // Coincidencia inmediata con cualquier fragmento: incluye el numero de norma
+      // (carpeta) y la parte, e ignora acentos para que 'resolucion' encuentre
+      // 'Resolución' y al reves.
+      if(q){
+        const hay = sinAcentos([d.titulo, d.tipo, d.entidad, d.anio, d.original,
+                                d.coleccion, d.carpeta, d.parte].filter(Boolean).join(" "));
+        if(!hay.includes(q)) return false;
+      }
       return true;
     });
   }
@@ -843,14 +865,9 @@
     document.getElementById('docEmpty').hidden = true;
     const head = document.getElementById('docHead');
     head.hidden = false;
-    head.innerHTML = `
-      <div class="sub">${esc(d.tipo)} · ${esc(d.entidad||'')}${d.anio?` · ${d.anio}`:''}${GRUPOS.length>1?` · ${esc(d._grupo)}`:''}${d.coleccion&&d.coleccion!==d._grupo?` · ${esc(d.coleccion)}`:''}</div>
-      <h2>${esc(d.titulo)}</h2>
-      <div class="metas">
-        <span class="badge ${stCls(d.estado)}">${esc(d.estado||'Vigente')}</span>
-        ${d.kb?`<span>· ${d.kb} KB</span>`:''}
-      </div>
-      <div class="doc-actions" id="docActions"><span style="font-size:.8rem;color:var(--ink-faint)">Generando enlace…</span></div>`;
+    // Solo las acciones: el titulo y los datos ya estan en la lista de la izquierda,
+    // y quitarlos deja mas alto para el visor.
+    head.innerHTML = `<div class="doc-actions" id="docActions"><span style="font-size:.8rem;color:var(--ink-faint)">Generando enlace…</span></div>`;
     document.getElementById('pdfWrap').hidden = true;
 
     // Enlace firmado temporal (bucket privado)
@@ -1156,6 +1173,15 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
   };
   document.getElementById('q').oninput = e=>{ state.q=e.target.value; render(); };
   document.getElementById('fCol').onchange = e=>{ state.col=e.target.value; render(); };
+  document.getElementById('fFecha').onchange = e=>{
+    state.fecha = e.target.value;
+    document.getElementById('fFechaX').hidden = !state.fecha;
+    render();
+  };
+  document.getElementById('fFechaX').onclick = ()=>{
+    state.fecha = ""; document.getElementById('fFecha').value = "";
+    document.getElementById('fFechaX').hidden = true; render();
+  };
   document.getElementById('fTipo').onchange = e=>{ state.tipo=e.target.value; render(); };
   document.getElementById('fEnt').onchange  = e=>{ state.ent=e.target.value; render(); };
   document.getElementById('fYear').onchange = e=>{ state.year=e.target.value; render(); };

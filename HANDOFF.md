@@ -169,15 +169,27 @@ Navegador (index.html + config.js + lib/supabase.js)
    denominaciones llegan a 300 caracteres y al final no se distinguirían.
    En la lista los títulos se recortan a 3 líneas (texto completo en el tooltip
    y en la ficha).
-12. **UI:** columna de la lista `0.9fr` y visor `1.1fr` (45/55); cabecera
+12. **Filtro por día:** campo `<input type="date">` en la barra de filtros, con
+   botón para quitarlo. ⚠️ **Solo 116 documentos tienen fecha real** (la del
+   índice oficial de OPR). Los 123 de la Normativa base llevan `2026-08-17` y los
+   115 del lote complemento `2026-09-04`: son la fecha en que se copió el
+   archivo, no la de la norma. Mientras no se corrija, filtrar por esos dos días
+   devuelve bloques enteros sin sentido. Limpiarlo es una sentencia:
+   `update public.normativos_opr set fecha = null where fecha = '2026-09-04';`
+13. **Búsqueda:** inmediata a cada pulsación, por subcadena, **sin distinguir
+   tildes** y abarcando también `carpeta` (número de norma) y `parte`. Antes no
+   encontraba una norma por su número si este solo estaba en el nombre de la
+   carpeta.
+14. **UI:** columna de la lista `0.6fr` y visor `1.4fr` (30/70); cabecera
    institucional a 76 px con título 1.3rem y subtítulo .86rem; pestaña rotulada
    "Inventario OPR"; visor de PDF sin miniaturas y a tamaño real
    (`#navpanes=0&pagemode=none&zoom=100`).
-   ⚠️ Con `zoom=100` una página A4 necesita ~794 px: el visor solo la muestra
-   entera si la ventana pasa de **~1450 px** de ancho. Por debajo, el PDF se
-   desplaza horizontalmente dentro de su propio visor. Si molesta, hay dos
-   salidas: estrechar la lista (`0.8fr 1.2fr` baja el umbral a ~1360 px) o
-   volver a `view=FitH`, que ajustaba al ancho disponible.
+   Con la lista a `0.6fr` el visor ocupa el 70 %: a 1280 px son 896, así que una
+   A4 (794) y una carta (816) caben enteras al 100 %. El umbral baja a ~1135 px
+   de ventana.
+   La ficha del documento se quedó **solo con los botones** Descargar y Abrir en
+   pestaña: el título y los datos ya están en la lista, y quitarlos da más alto
+   al visor.
 
 ---
 
