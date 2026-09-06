@@ -287,6 +287,26 @@ Navegador (index.html + config.js + lib/supabase.js)
   La demo **no** se actualiza sola al empujar `main`.
 - `web.config` se deja fuera: es especifico de IIS y en Pages es inerte.
 
+**El panel y el repositorio divergen — comprobar siempre la base**
+- Van **tres** veces que aparecen objetos en Supabase que no están en estos
+  scripts, probablemente creados con el asistente del panel:
+  1. `storage_select_opr` / `storage_select_admin`, que sustituyeron a la
+     política del bucket (y la primera comparaba contra `documentos/opr_...`,
+     un prefijo que **no** existe en el nombre del objeto).
+  2. `perfil_admin_select_all` / `perfil_admin_update_all` en `profiles`.
+  3. El disparador `profiles_guard()`, que bloquea cambios de rol **incluso
+     desde el SQL Editor** porque no contempla `auth.uid()` nulo.
+- También existe una Edge Function **`crear-usuario`** que no está en el repo y
+  sigue sin auditar.
+- **Antes de dar por buena cualquier regla, mirar lo que la base tiene de verdad:**
+  ```sql
+  select policyname, cmd, qual from pg_policies where schemaname in ('public','storage');
+  select tgname from pg_trigger where tgrelid='public.profiles'::regclass and not tgisinternal;
+  ```
+- `supabase-tres-perfiles.sql` retira **todos** los disparadores de `profiles`
+  antes de normalizar y deja uno solo al final, para no depender de conocer sus
+  nombres.
+
 **Supabase en el navegador**
 - ⚠️ **Nunca consultar a Supabase dentro del callback de `onAuthStateChange`.**
   La librería mantiene un cerrojo interno mientras ese callback corre: un
