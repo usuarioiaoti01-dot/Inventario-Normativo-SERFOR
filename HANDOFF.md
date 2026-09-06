@@ -169,13 +169,21 @@ Navegador (index.html + config.js + lib/supabase.js)
    denominaciones llegan a 300 caracteres y al final no se distinguirían.
    En la lista los títulos se recortan a 3 líneas (texto completo en el tooltip
    y en la ficha).
-12. **Filtro por día:** campo `<input type="date">` en la barra de filtros, con
-   botón para quitarlo. ⚠️ **Solo 116 documentos tienen fecha real** (la del
-   índice oficial de OPR). Los 123 de la Normativa base llevan `2026-08-17` y los
-   115 del lote complemento `2026-09-04`: son la fecha en que se copió el
-   archivo, no la de la norma. Mientras no se corrija, filtrar por esos dos días
-   devuelve bloques enteros sin sentido. Limpiarlo es una sentencia:
-   `update public.normativos_opr set fecha = null where fecha = '2026-09-04';`
+12. **Filtro por día** y **fecha de publicación real.** La fecha se extrae del
+   propio PDF con `extraer-fechas-opr.ps1` (usa `pdftotext`, que trae Git for
+   Windows). Criterios, medidos y no supuestos:
+   - Se toma la fecha **anclada al lugar** — "Magdalena del Mar, 06 de Enero del
+     2025" — porque la primera fecha suelta de la página suele ser la de otro
+     documento citado en los VISTOS. Anclada acierta 92 %; suelta, 86 % y con el
+     doble de errores.
+   - Respaldo: el sello de firma digital. Si no hay ninguna, se deja **sin fecha**.
+   - La fecha se lee de la **resolución** y se propaga a documento, anexo y
+     expediente de la misma norma.
+   - Comprobado simulando la extracción en 46 normas de fecha oficial conocida:
+     **89 % exactas, 97,8 % dentro de 3 días, 1 error**.
+   Resultado: 109 documentos reciben fecha y 8 quedan sin ella. Aplicado solo a
+   **Normativos OPR** (decisión del usuario); la Normativa base sigue con la fecha
+   del archivo (`2026-08-17`) y ahí la extracción solo rondaría el 55 %.
 13. **Búsqueda:** inmediata a cada pulsación, por subcadena, **sin distinguir
    tildes** y abarcando también `carpeta` (número de norma) y `parte`. Antes no
    encontraba una norma por su número si este solo estaba en el nombre de la
@@ -205,6 +213,8 @@ Navegador (index.html + config.js + lib/supabase.js)
 | `supabase/functions/admin-usuarios/index.ts` | Edge Function de gestión de cuentas (Deno) | ❌ Se despliega en Supabase |
 | `supabase-usuarios.sql` | Perfiles Administrador/Especialista, alcance y salvaguardas | ❌ Solo instalación |
 | `supabase-carpetas.sql` | Campos `carpeta` y `parte`: normas con varios documentos | ❌ Solo instalación |
+| `extraer-fechas-opr.ps1` | Lee la fecha de publicación desde los PDF y genera el SQL | ❌ Solo migración |
+| `actualizar-fechas-opr.sql` | Corrige la fecha de 109 documentos OPR (generado) | ❌ Solo migración |
 | `generar-inventario-complemento.ps1` | Cataloga el lote por carpetas y detecta lo ya cargado | ❌ Solo migración |
 | `inventario-complemento.js` | Catálogo de los 115 PDF nuevos | ❌ Solo migración |
 | `actualizar-carpetas-opr.sql` | Agrupa los 102 ya cargados sin resubirlos (generado) | ❌ Solo migración |
