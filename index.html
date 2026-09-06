@@ -584,6 +584,17 @@
   // ---------- Entrar a la app ----------
   const ROTULO_ROL = { admin:'Administrador', especialista:'Especialista' };
 
+  // El rol se compara normalizado (sin espacios, sin mayusculas, sin tildes) para
+  // que un 'Admin', ' admin ' o 'Administrador' guardado a mano no deje al
+  // usuario sin sus permisos. Devuelve 'admin', 'especialista' o null si no se
+  // reconoce: en ese caso la interfaz lo dice en vez de fingir un rol.
+  function normalizarRol(r){
+    const v = String(r||'').trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+    if(v === 'admin' || v === 'administrador') return 'admin';
+    if(v === 'especialista' || v === 'lector') return 'especialista';
+    return null;
+  }
+
   // getSession() y onAuthStateChange pueden dispararse casi a la vez: sin este
   // cerrojo la app entraria dos veces y cargaria el inventario por duplicado.
   let entrando = false;
@@ -640,13 +651,21 @@
     if(prof && prof.debe_cambiar_clave){ show('claveScreen'); return; }
 
     show('app');
-    isAdmin = prof && prof.role === 'admin';
+    const rol = prof ? normalizarRol(prof.role) : null;
+    isAdmin = rol === 'admin';
+
     // Sin perfil legible NO se finge un rol: se avisa. Antes se mostraba
     // "Especialista" en silencio y parecia un problema de permisos cuando en
     // realidad la consulta habia fallado.
-    document.getElementById('roleTag').textContent = prof ? (ROTULO_ROL[prof.role] || prof.role) : 'sin perfil';
-    document.getElementById('roleTag').classList.toggle('alerta', !prof);
-    avisoPerfil(fallo);
+    const chip = document.getElementById('roleTag');
+    chip.textContent = rol ? ROTULO_ROL[rol] : (prof ? 'rol no valido' : 'sin perfil');
+    chip.classList.toggle('alerta', !rol);
+    chip.title = prof ? ('Valor guardado en profiles.role: ' + JSON.stringify(prof.role)) : '';
+
+    if(!prof)      avisoPerfil(fallo);
+    else if(!rol)  avisoPerfil('Tu perfil tiene el rol ' + JSON.stringify(prof.role) +
+                     ', que no es ninguno de los dos validos (admin / especialista).');
+    else           avisoPerfil(null);
     document.getElementById('navNew').hidden = !isAdmin;
     document.getElementById('navUsr').hidden = !isAdmin;
     document.getElementById('adminForm').hidden = !isAdmin;
