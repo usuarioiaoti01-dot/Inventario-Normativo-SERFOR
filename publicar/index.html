@@ -431,7 +431,7 @@
       </div>
       <div id="noAdmin" class="noadmin" hidden>
         <h2>Solo administradores</h2>
-        <p>Tu cuenta tiene rol de <b>Especialista</b>. Para agregar documentos, solicita permisos de administrador a la OTI.</p>
+        <p>Tu cuenta no tiene permisos de administrador. Para agregar documentos, solí­citalos a la OTI.</p>
       </div>
     </div>
   </div>
@@ -454,8 +454,9 @@
           <div class="field">
             <label for="nRol">Perfil *</label>
             <select id="nRol">
-              <option value="especialista">Especialista — consulta y descarga Normativos OPR</option>
-              <option value="admin">Administrador — control total</option>
+              <option value="especialista">Especialista — solo Normativos OPR</option>
+              <option value="normas_oti">Normas OTI — solo Normas OTI</option>
+              <option value="admin">Administrador — ve todo y gestiona cuentas</option>
             </select>
           </div>
           <div class="field">
@@ -532,6 +533,7 @@
 
   let sb = null, INVENTARIO = [], isAdmin = false, currentUser = null;
   let GRUPOS = [];             // fuentes que respondieron (las tablas que existen)
+  let ROL = null;              // 'admin' | 'especialista' | 'normas_oti'
   let CARPETAS = new Map();    // norma -> sus documentos (resolucion, anexo, etc.)
   let VISIBLES = [];           // carpetas pintadas en el ultimo render, por indice
   const COL_OK = {};           // por tabla: si tiene la columna 'coleccion' (ver supabase-coleccion.sql)
@@ -540,10 +542,10 @@
   // modelo) y agregar aquí una línea. Los PDF de todas las fuentes viven en el
   // mismo bucket 'documentos', así que el visor y el asistente no cambian.
   const FUENTES = [
-    { tabla:"documentos",     nombre:"Normativa base" },
+    { tabla:"documentos",     nombre:"Normas OTI" },
     { tabla:"normativos_opr", nombre:"Normativos OPR" }
   ];
-  const COL_BASE = "Normativa base";   // coleccion de los documentos ya cargados
+  const COL_BASE = "Normas OTI";   // coleccion de los documentos ya cargados
   // grupo:"" = todas las fuentes  |  col:"" = todas las colecciones de la fuente activa
   const state = { q:"", tipo:"", ent:"", year:"", grupo:"", col:"", fecha:"", active:null, abiertas:new Set() };
 
@@ -582,7 +584,15 @@
   document.getElementById('logoutBtn').onclick = async ()=>{ await sb.auth.signOut(); };
 
   // ---------- Entrar a la app ----------
-  const ROTULO_ROL = { admin:'Administrador', especialista:'Especialista' };
+  const ROTULO_ROL = { admin:'Administrador', especialista:'Especialista', normas_oti:'Normas OTI' };
+
+  // Que conjunto ve cada perfil. Es solo para la interfaz: quien manda de verdad
+  // son las reglas RLS de la base (ver supabase-tres-perfiles.sql).
+  const ALCANCE = {
+    admin:        ['documentos','normativos_opr'],
+    especialista: ['normativos_opr'],
+    normas_oti:   ['documentos']
+  };
 
   // El rol se compara normalizado (sin espacios, sin mayusculas, sin tildes) para
   // que un 'Admin', ' admin ' o 'Administrador' guardado a mano no deje al
@@ -591,7 +601,8 @@
   function normalizarRol(r){
     const v = String(r||'').trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
     if(v === 'admin' || v === 'administrador') return 'admin';
-    if(v === 'especialista' || v === 'lector') return 'especialista';
+    if(v === 'especialista' || v === 'lector' || v === 'profesional') return 'especialista';
+    if(v === 'normas_oti' || v === 'normas oti' || v === 'oti') return 'normas_oti';
     return null;
   }
 
@@ -652,6 +663,7 @@
 
     show('app');
     const rol = prof ? normalizarRol(prof.role) : null;
+    ROL = rol;
     isAdmin = rol === 'admin';
 
     // Sin perfil legible NO se finge un rol: se avisa. Antes se mostraba
@@ -715,7 +727,11 @@
     const pane = document.getElementById('listPane');
     pane.innerHTML = `<div class="empty">Cargando documentos…</div>`;
 
-    const res = await Promise.all(FUENTES.map(f =>
+    // Se consultan solo las tablas que corresponden al perfil: ahorra una
+    // peticion que la base rechazaria igual. El limite real lo pone el RLS.
+    const permitidas = ALCANCE[ROL] || [];
+    const fuentes = FUENTES.filter(f => permitidas.includes(f.tabla));
+    const res = await Promise.all(fuentes.map(f =>
       sb.from(f.tabla).select('*').then(r => ({ f, ...r }))
     ));
 
@@ -998,8 +1014,10 @@
     try {
       const r = await admUsuarios({ accion:'listar' });
       USUARIOS = r.usuarios || [];
-      const admins = USUARIOS.filter(u=>u.role==='admin').length;
-      resumen.textContent = `${USUARIOS.length} cuenta(s): ${admins} administrador(es) y ${USUARIOS.length-admins} especialista(s).`;
+      const porRol = {admin:0, especialista:0, normas_oti:0};
+      USUARIOS.forEach(u=>{ const r = normalizarRol(u.role); if(r) porRol[r]++; });
+      resumen.textContent = `${USUARIOS.length} cuenta(s): ${porRol.admin} de Administrador, ` +
+        `${porRol.especialista} de Especialista y ${porRol.normas_oti} de Normas OTI.`;
       pintarUsuarios();
     } catch(e){
       USUARIOS = [];
@@ -1019,8 +1037,8 @@
         </td>
         <td>
           <select onchange="cambiarRol(${i}, this.value)" ${u.soy_yo?'disabled title="No puedes cambiar tu propio perfil"':''}>
-            <option value="especialista" ${u.role==='especialista'?'selected':''}>Especialista</option>
-            <option value="admin" ${u.role==='admin'?'selected':''}>Administrador</option>
+            ${['especialista','normas_oti','admin'].map(r=>
+              `<option value="${r}" ${normalizarRol(u.role)===r?'selected':''}>${ROTULO_ROL[r]}</option>`).join('')}
           </select>
           ${u.debe_cambiar_clave?'<div style="margin-top:5px"><span class="etq pend">clave sin estrenar</span></div>':''}
         </td>

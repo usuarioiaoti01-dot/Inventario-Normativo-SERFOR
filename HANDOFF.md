@@ -133,10 +133,17 @@ Navegador (index.html + config.js + lib/supabase.js)
      tabla, porque una puede tenerlo y otra no.
    La barra de pestañas vive **dentro** de Inventario (no como pestaña principal
    aparte) para reutilizar buscador, filtros, visor y asistente.
-9. **Dos perfiles, con el alcance impuesto en la base.** `admin`
-   ("Administrador") y `especialista` ("Especialista"; reemplaza a `lector`).
-   El Especialista ve **solo** `normativos_opr`. Consecuencias resueltas:
-   - RLS: `documentos` solo para administradores; `normativos_opr` para todos.
+9. **Tres perfiles, con el alcance impuesto en la base** (2026-09-05):
+   `admin` ve todo; `especialista` ve **solo** `normativos_opr`; `normas_oti`
+   ve **solo** `documentos` (la coleccion, renombrada de "Normativa base" a
+   **"Normas OTI"**). Consecuencias resueltas:
+   - RLS con funciones `ve_opr()` / `ve_oti()`: cada tabla responde solo a su
+     perfil y al administrador.
+   - ⚠️ **El rol se compara normalizado** (sin espacios ni mayúsculas). Un
+     `Administrador` guardado a mano dejaba al usuario sin permisos aunque la
+     interfaz lo mostrara bien, y la Edge Function lo rechazaba con
+     *"Se requiere rol de administrador"*. Normalizan `is_admin()`, la funcion
+     `admin-usuarios` y la app.
    - Los PDF de ambos conjuntos comparten bucket, así que la política de
      `storage.objects` deja leer al Especialista **solo** los objetos `opr\_%`.
      De ahí que el formulario de carga anteponga `opr_` cuando el destino es esa
@@ -215,6 +222,7 @@ Navegador (index.html + config.js + lib/supabase.js)
 | `supabase-carpetas.sql` | Campos `carpeta` y `parte`: normas con varios documentos | ❌ Solo instalación |
 | `supabase-storage-limpieza.sql` | Deja una sola regla de lectura del bucket | ❌ Solo instalación |
 | `supabase-perfiles-arreglo.sql` | Repara las políticas de `profiles` (rol no reconocido) | ❌ Solo instalación |
+| `supabase-tres-perfiles.sql` | **Los tres perfiles y su alcance.** Reemplaza a los dos anteriores | ❌ Solo instalación |
 | `diagnostico-archivos.sql` | Separa "archivo ausente" de "acceso denegado" | ❌ Diagnóstico |
 | `extraer-fechas-opr.ps1` | Lee la fecha de publicación desde los PDF y genera el SQL | ❌ Solo migración |
 | `actualizar-fechas-opr.sql` | Corrige la fecha de 109 documentos OPR (generado) | ❌ Solo migración |

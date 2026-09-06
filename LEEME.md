@@ -89,7 +89,7 @@ Al terminar, tendrás los 123 PDF y su metadata en Supabase.
   los grupos se abren solos y la fila indica "N de M documentos" cuando el
   filtro deja fuera a alguno de sus hermanos.
 - **Pestañas por conjunto:** cada tabla de normativa es una pestaña sobre el
-  buscador — *Todas | Normativa base | Normativos OPR* — con su conteo. Filtra la
+  buscador — *Todas | Normas OTI | Normativos OPR* — con su conteo. Filtra la
   lista y se combina con el buscador y los filtros de tipo/entidad/año. Si solo
   hay una tabla, la barra no aparece.
 
@@ -102,7 +102,7 @@ como una **pestaña** del Inventario. Hoy hay dos:
 
 | Pestaña | Tabla | Contenido |
 |---|---|---|
-| Normativa base | `documentos` | los 122 documentos de la carga inicial |
+| Normas OTI | `documentos` | los 122 documentos de la carga inicial |
 | Normativos OPR | `normativos_opr` | 116 PDF (70 lineamientos y directivas de OPR) |
 
 Los PDF de **todas** las tablas se guardan en el mismo bucket privado
@@ -182,10 +182,11 @@ solo se muestra si esa tabla tiene la columna.
 La aplicación tiene dos perfiles, y su alcance se hace cumplir **en la base de
 datos** (reglas RLS), no solo escondiendo botones:
 
-| Perfil | Qué puede hacer |
+| Perfil | Qué ve |
 |---|---|
-| **Administrador** | Todo: ve las dos pestañas, sube documentos y gestiona cuentas. |
-| **Especialista** | Consulta y descarga **solo** los documentos de *Normativos OPR*. No ve la Normativa base ni puede subir nada. |
+| **Administrador** | Todo: las dos pestañas, sube documentos y gestiona cuentas. |
+| **Especialista** | Solo *Normativos OPR*. No ve Normas OTI ni puede subir nada. |
+| **Normas OTI** | Solo *Normas OTI*. No ve Normativos OPR ni puede subir nada. |
 
 > Un especialista no solo deja de ver la pestaña: la consulta a la tabla
 > `documentos` le devuelve cero filas y el bucket le niega los PDF que no lleven

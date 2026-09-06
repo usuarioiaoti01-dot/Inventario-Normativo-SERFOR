@@ -22,7 +22,18 @@ const cors = {
 const json = (obj: unknown, status = 200) =>
   new Response(JSON.stringify(obj), { status, headers: { ...cors, "content-type": "application/json" } });
 
-const ROLES = ["admin", "especialista"];
+const ROLES = ["admin", "especialista", "normas_oti"];
+
+// El rol puede haberse escrito a mano ('Admin', 'Administrador', con espacios).
+// Comparar contra "admin" a secas dejaba fuera a administradores reales:
+// la interfaz los mostraba como tales y esta funcion los rechazaba.
+const normalizarRol = (r: unknown) => {
+  const v = String(r ?? "").trim().normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  if (v === "admin" || v === "administrador") return "admin";
+  if (v === "especialista" || v === "lector" || v === "profesional") return "especialista";
+  if (v === "normas_oti" || v === "normas oti" || v === "oti") return "normas_oti";
+  return null;
+};
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -43,7 +54,10 @@ Deno.serve(async (req) => {
     // 2) ...y debe ser administrador. Se comprueba con service role para que
     //    no dependa de lo que el navegador diga tener.
     const { data: yo } = await admin.from("profiles").select("role").eq("id", user.id).single();
-    if (!yo || yo.role !== "admin") return json({ error: "Se requiere rol de administrador." }, 403);
+    if (!yo) return json({ error: "Tu cuenta no tiene perfil en la tabla profiles." }, 403);
+    if (normalizarRol(yo.role) !== "admin") {
+      return json({ error: `Se requiere rol de administrador (tu perfil es ${JSON.stringify(yo.role)}).` }, 403);
+    }
 
     const { accion, id, email, nombre, clave, rol } = await req.json();
 
@@ -77,7 +91,7 @@ Deno.serve(async (req) => {
       case "crear": {
         if (!email || !clave) return json({ error: "Faltan el correo o la clave inicial." }, 400);
         if (clave.length < 8) return json({ error: "La clave inicial debe tener al menos 8 caracteres." }, 400);
-        const rolNuevo = ROLES.includes(rol) ? rol : "especialista";
+        const rolNuevo = normalizarRol(rol) ?? "especialista";
 
         const { data: creado, error: errCrear } = await admin.auth.admin.createUser({
           email, password: clave, email_confirm: true,
@@ -107,7 +121,7 @@ Deno.serve(async (req) => {
         if (id === user.id) return json({ error: "No puedes eliminar tu propia cuenta." }, 400);
 
         const { data: destino } = await admin.from("profiles").select("role").eq("id", id).single();
-        if (destino?.role === "admin" && (await contarAdmins()) <= 1) {
+        if (normalizarRol(destino?.role) === "admin" && (await contarAdmins()) <= 1) {
           return json({ error: "Es el unico administrador: la aplicacion quedaria sin acceso." }, 400);
         }
 
@@ -118,15 +132,16 @@ Deno.serve(async (req) => {
 
       // ---------- Cambiar rol ----------
       case "cambiar_rol": {
-        if (!id || !ROLES.includes(rol)) return json({ error: "Rol no valido." }, 400);
-        if (id === user.id && rol !== "admin") {
+        const rolPedido = normalizarRol(rol);
+        if (!id || !rolPedido) return json({ error: "Rol no valido: " + JSON.stringify(rol) }, 400);
+        if (id === user.id && rolPedido !== "admin") {
           return json({ error: "No puedes quitarte a ti mismo el rol de administrador." }, 400);
         }
         const { data: destino } = await admin.from("profiles").select("role").eq("id", id).single();
-        if (destino?.role === "admin" && rol !== "admin" && (await contarAdmins()) <= 1) {
+        if (normalizarRol(destino?.role) === "admin" && rolPedido !== "admin" && (await contarAdmins()) <= 1) {
           return json({ error: "Es el unico administrador: la aplicacion quedaria sin acceso." }, 400);
         }
-        const { error } = await admin.from("profiles").update({ role: rol }).eq("id", id);
+        const { error } = await admin.from("profiles").update({ role: rolPedido }).eq("id", id);
         if (error) return json({ error: error.message }, 500);
         return json({ ok: true });
       }
