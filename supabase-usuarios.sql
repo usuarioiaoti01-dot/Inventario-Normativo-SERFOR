@@ -79,13 +79,14 @@ create policy "opr_select" on public.normativos_opr
 -- Los PDF de ambos conjuntos comparten el bucket 'documentos'. Sin esto, un
 -- especialista podria pedir una URL firmada de un PDF de la normativa base
 -- adivinando su ruta. Los archivos del lote OPR llevan el prefijo 'opr_'.
---   OJO: en LIKE, '_' es comodin; por eso va escapado como 'opr\_%'.
+--   Se comparan los cuatro primeros caracteres en vez de usar LIKE: asi no
+--   depende de como interprete la base la barra invertida ni el guion bajo.
 drop policy if exists "storage_select" on storage.objects;
 create policy "storage_select" on storage.objects
   for select to authenticated
   using (
     bucket_id = 'documentos'
-    and (public.is_admin() or name like 'opr\_%')
+    and (public.is_admin() or left(name, 4) = 'opr_')
   );
 
 -- ============================================================
