@@ -214,6 +214,7 @@ Navegador (index.html + config.js + lib/supabase.js)
 | `supabase-usuarios.sql` | Perfiles Administrador/Especialista, alcance y salvaguardas | ❌ Solo instalación |
 | `supabase-carpetas.sql` | Campos `carpeta` y `parte`: normas con varios documentos | ❌ Solo instalación |
 | `supabase-storage-limpieza.sql` | Deja una sola regla de lectura del bucket | ❌ Solo instalación |
+| `supabase-perfiles-arreglo.sql` | Repara las políticas de `profiles` (rol no reconocido) | ❌ Solo instalación |
 | `diagnostico-archivos.sql` | Separa "archivo ausente" de "acceso denegado" | ❌ Diagnóstico |
 | `extraer-fechas-opr.ps1` | Lee la fecha de publicación desde los PDF y genera el SQL | ❌ Solo migración |
 | `actualizar-fechas-opr.sql` | Corrige la fecha de 109 documentos OPR (generado) | ❌ Solo migración |
@@ -290,6 +291,16 @@ Navegador (index.html + config.js + lib/supabase.js)
 - Regla que queda: **ninguna pantalla debe depender de una consulta que puede no
   responder.** `leerPerfil()` tiene límite de 8 s y, si se agota, entra con el
   perfil mínimo. No es un riesgo: los datos los protege el RLS, no el navegador.
+- ⚠️ **Y ninguna degradación debe ser silenciosa.** La primera versión de
+  `leerPerfil()` se tragaba el error y mostraba "Especialista" sin avisar: un
+  administrador parecía haber perdido permisos cuando lo que fallaba era la
+  consulta. Ahora, si el perfil no se puede leer, el rótulo dice **"sin perfil"**
+  en rojo y aparece una barra explicando el motivo exacto.
+- **Síntoma a reconocer:** rótulo de Especialista pero se ven documentos que solo
+  un administrador debería ver. Significa que la base **sí** reconoce el rol
+  (`is_admin()` es SECURITY DEFINER y se salta el RLS) pero la app **no** puede
+  leer `profiles`. Falta la política `perfil_propio_select`; lo repara
+  `supabase-perfiles-arreglo.sql`.
 
 **Git**
 - Mensajes de commit **en una sola línea** (`git commit -m "..."`). Los mensajes

@@ -121,6 +121,9 @@
   select.filter{padding:7px 10px;border:1px solid var(--line-strong);border-radius:var(--radius);background:var(--surface);color:var(--ink);font-size:.82rem;cursor:pointer}
   select.filter:focus{outline:2px solid var(--brand);outline-offset:1px}
   .count-pill{font-size:.8rem;color:var(--ink-soft);margin-left:auto;font-variant-numeric:tabular-nums}
+  .aviso-barra{background:var(--stop-bg);color:var(--stop);font-size:.84rem;padding:10px 24px;border-bottom:1px solid var(--line);flex:none}
+  .aviso-barra code{background:rgba(0,0,0,.08);padding:1px 5px;border-radius:4px;font-size:.92em}
+  .role.alerta{background:var(--stop);color:#fff}
 
   /* Pestanas de coleccion (lotes de normativa) */
   .colltabs{background:var(--surface);border-bottom:1px solid var(--line);padding:0 24px;display:flex;gap:2px;align-items:flex-end;flex:none;overflow-x:auto}
@@ -590,6 +593,21 @@
     finally { entrando = false; }
   }
 
+  // Banner visible cuando el perfil no se pudo leer: el rol mostrado no es fiable
+  function avisoPerfil(texto){
+    let el = document.getElementById('avisoPerfil');
+    if(!texto){ if(el) el.remove(); return; }
+    if(!el){
+      el = document.createElement('div');
+      el.id = 'avisoPerfil';
+      el.className = 'aviso-barra';
+      document.getElementById('app').insertBefore(el, document.getElementById('viewInv'));
+    }
+    el.innerHTML = `<b>No se pudo confirmar tu perfil.</b> ${esc(texto)} ` +
+      `La aplicacion te muestra los permisos minimos; lo que veas depende de las reglas de la base. ` +
+      `Avisa a la OTI: puede faltar la politica <code>perfil_propio_select</code> en la tabla profiles.`;
+  }
+
   function mostrarLogin(aviso){
     show('loginScreen');
     const btn = document.getElementById('loginBtn');
@@ -604,22 +622,29 @@
     const consulta = sb.from('profiles').select('role, debe_cambiar_clave').eq('id', id).single();
     const limite = new Promise(res=> setTimeout(()=> res({ data:null, agotado:true }), 8000));
     const r = await Promise.race([consulta, limite]);
-    if(r.agotado) console.warn('El perfil tardo demasiado; se entra con permisos de Especialista.');
-    return r.data;
+    if(r.agotado)   return { perfil:null, fallo:'La consulta del perfil no respondio a tiempo.' };
+    if(r.error)     return { perfil:null, fallo:'No se pudo leer el perfil: ' + r.error.message };
+    if(!r.data)     return { perfil:null, fallo:'Tu cuenta no tiene perfil en la tabla profiles.' };
+    return { perfil:r.data, fallo:null };
   }
 
   async function enterApp(session){
     currentUser = session.user;
     document.getElementById('userEmail').textContent = currentUser.email;
 
-    const prof = await leerPerfil(currentUser.id);
+    const { perfil: prof, fallo } = await leerPerfil(currentUser.id);
 
     // Primer ingreso con la clave que dio el administrador: no se entra sin cambiarla
     if(prof && prof.debe_cambiar_clave){ show('claveScreen'); return; }
 
     show('app');
     isAdmin = prof && prof.role === 'admin';
-    document.getElementById('roleTag').textContent = ROTULO_ROL[prof && prof.role] || 'Especialista';
+    // Sin perfil legible NO se finge un rol: se avisa. Antes se mostraba
+    // "Especialista" en silencio y parecia un problema de permisos cuando en
+    // realidad la consulta habia fallado.
+    document.getElementById('roleTag').textContent = prof ? (ROTULO_ROL[prof.role] || prof.role) : 'sin perfil';
+    document.getElementById('roleTag').classList.toggle('alerta', !prof);
+    avisoPerfil(fallo);
     document.getElementById('navNew').hidden = !isAdmin;
     document.getElementById('navUsr').hidden = !isAdmin;
     document.getElementById('adminForm').hidden = !isAdmin;
