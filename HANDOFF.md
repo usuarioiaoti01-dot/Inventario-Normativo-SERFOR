@@ -213,6 +213,8 @@ Navegador (index.html + config.js + lib/supabase.js)
 | `supabase/functions/admin-usuarios/index.ts` | Edge Function de gestión de cuentas (Deno) | ❌ Se despliega en Supabase |
 | `supabase-usuarios.sql` | Perfiles Administrador/Especialista, alcance y salvaguardas | ❌ Solo instalación |
 | `supabase-carpetas.sql` | Campos `carpeta` y `parte`: normas con varios documentos | ❌ Solo instalación |
+| `supabase-storage-limpieza.sql` | Deja una sola regla de lectura del bucket | ❌ Solo instalación |
+| `diagnostico-archivos.sql` | Separa "archivo ausente" de "acceso denegado" | ❌ Diagnóstico |
 | `extraer-fechas-opr.ps1` | Lee la fecha de publicación desde los PDF y genera el SQL | ❌ Solo migración |
 | `actualizar-fechas-opr.sql` | Corrige la fecha de 109 documentos OPR (generado) | ❌ Solo migración |
 | `generar-inventario-complemento.ps1` | Cataloga el lote por carpetas y detecta lo ya cargado | ❌ Solo migración |
@@ -249,6 +251,15 @@ Navegador (index.html + config.js + lib/supabase.js)
   de acciones difíciles de revertir.
 
 **Seguridad (crítico)**
+- ⚠️ **Las políticas del bucket se han sobrescrito desde el panel.** En
+  2026-09-04 aparecieron `storage_select_admin` y `storage_select_opr` en lugar
+  de la `storage_select` de `supabase-usuarios.sql`. La segunda comparaba contra
+  `'documentos/opr_...'`, pero **el nombre del objeto NO incluye el bucket**
+  (es `opr_xxx.pdf`), así que no casaba con nada y el Especialista recibía
+  *"Object not found"* en todos los documentos. Lo resuelve
+  `supabase-storage-limpieza.sql`, que deja una sola política de lectura.
+  Antes de dar por buena una regla, comprobar con:
+  `select policyname, cmd, qual from pg_policies where schemaname='storage' and tablename='objects';`
 - **NUNCA** poner claves secretas en el frontend ni en el repo. En `config.js`
   solo va la clave **pública** (anon/publishable). La clave de Claude
   (`sk-ant-...`) y la `service_role` viven solo en secretos del servidor
