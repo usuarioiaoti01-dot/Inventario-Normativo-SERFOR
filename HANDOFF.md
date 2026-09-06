@@ -278,6 +278,19 @@ Navegador (index.html + config.js + lib/supabase.js)
   La demo **no** se actualiza sola al empujar `main`.
 - `web.config` se deja fuera: es especifico de IIS y en Pages es inerte.
 
+**Supabase en el navegador**
+- ⚠️ **Nunca consultar a Supabase dentro del callback de `onAuthStateChange`.**
+  La librería mantiene un cerrojo interno mientras ese callback corre: un
+  `await sb.from(...)` ahí dentro no vuelve nunca. Ocurrió el 2026-09-04 — el
+  login se quedaba en *"Ingresando…"* para siempre. El trabajo se aplaza con
+  `setTimeout(..., 0)` para salir de ese contexto.
+- El bloqueo existía antes, pero era invisible porque `show('app')` iba **antes**
+  de consultar el perfil. Al añadir el cambio de clave obligatorio esa consulta
+  pasó delante y dejó al usuario atrapado en la pantalla de acceso.
+- Regla que queda: **ninguna pantalla debe depender de una consulta que puede no
+  responder.** `leerPerfil()` tiene límite de 8 s y, si se agota, entra con el
+  perfil mínimo. No es un riesgo: los datos los protege el RLS, no el navegador.
+
 **Git**
 - Mensajes de commit **en una sola línea** (`git commit -m "..."`). Los mensajes
   multilínea con heredoc **activaron un bloqueo de seguridad del entorno** — evitar.

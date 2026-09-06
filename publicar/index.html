@@ -547,8 +547,17 @@
     const configured = (typeof SUPABASE_URL !== 'undefined' && SUPABASE_URL) && (typeof SUPABASE_ANON_KEY !== 'undefined' && SUPABASE_ANON_KEY);
     if(!configured || !window.supabase){ show('setupScreen'); return; }
     sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    sb.auth.getSession().then(({data})=>{ data.session ? enterApp(data.session) : show('loginScreen'); });
-    sb.auth.onAuthStateChange((_e,session)=>{ session ? enterApp(session) : show('loginScreen'); });
+    // OJO: dentro del callback de onAuthStateChange NO se puede consultar a
+    // Supabase. La libreria mantiene un cerrojo interno mientras ese callback
+    // corre, y cualquier consulta que necesite la sesion se queda esperando
+    // para siempre (el usuario se quedaba en "Ingresando..."). Con setTimeout
+    // el trabajo se hace ya fuera de ese contexto.
+    sb.auth.getSession().then(({data})=>{
+      setTimeout(()=> data.session ? entrar(data.session) : mostrarLogin(), 0);
+    });
+    sb.auth.onAuthStateChange((_e,session)=>{
+      setTimeout(()=> session ? entrar(session) : mostrarLogin(), 0);
+    });
   }
   function show(id){ ['setupScreen','loginScreen','claveScreen','app'].forEach(x=>document.getElementById(x).hidden = (x!==id)); }
 
@@ -570,12 +579,40 @@
   // ---------- Entrar a la app ----------
   const ROTULO_ROL = { admin:'Administrador', especialista:'Especialista' };
 
+  // getSession() y onAuthStateChange pueden dispararse casi a la vez: sin este
+  // cerrojo la app entraria dos veces y cargaria el inventario por duplicado.
+  let entrando = false;
+  async function entrar(session){
+    if(entrando) return;
+    entrando = true;
+    try { await enterApp(session); }
+    catch(e){ mostrarLogin('No se pudo abrir la sesion: ' + (e.message||e)); }
+    finally { entrando = false; }
+  }
+
+  function mostrarLogin(aviso){
+    show('loginScreen');
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = false; btn.textContent = 'Ingresar';   // no dejarlo en "Ingresando..."
+    if(aviso) document.getElementById('loginMsg').innerHTML = `<div class="auth-msg err">${esc(aviso)}</div>`;
+  }
+
+  // El perfil decide rol y si toca cambiar la clave. Si la consulta no responde,
+  // NO se deja al usuario colgado: se entra con el perfil minimo. Los datos
+  // siguen protegidos por las reglas de la base, no por lo que diga el navegador.
+  async function leerPerfil(id){
+    const consulta = sb.from('profiles').select('role, debe_cambiar_clave').eq('id', id).single();
+    const limite = new Promise(res=> setTimeout(()=> res({ data:null, agotado:true }), 8000));
+    const r = await Promise.race([consulta, limite]);
+    if(r.agotado) console.warn('El perfil tardo demasiado; se entra con permisos de Especialista.');
+    return r.data;
+  }
+
   async function enterApp(session){
     currentUser = session.user;
     document.getElementById('userEmail').textContent = currentUser.email;
 
-    const { data: prof } = await sb.from('profiles')
-      .select('role, debe_cambiar_clave').eq('id', currentUser.id).single();
+    const prof = await leerPerfil(currentUser.id);
 
     // Primer ingreso con la clave que dio el administrador: no se entra sin cambiarla
     if(prof && prof.debe_cambiar_clave){ show('claveScreen'); return; }
@@ -593,6 +630,9 @@
 
   // ---------- Cambio de clave obligatorio ----------
   document.getElementById('claveSalir').onclick = async e =>{ e.preventDefault(); await sb.auth.signOut(); };
+
+  // Tras cambiar la clave se vuelve a entrar; el cerrojo debe estar libre
+  function reentrar(session){ entrando = false; return entrar(session); }
 
   document.getElementById('claveForm').addEventListener('submit', async e=>{
     e.preventDefault();
@@ -618,7 +658,7 @@
     document.getElementById('clave1').value = ''; document.getElementById('clave2').value = '';
     btn.disabled = false; btn.textContent = 'Guardar y entrar';
     const { data } = await sb.auth.getSession();
-    if(data.session) await enterApp(data.session);
+    if(data.session) await reentrar(data.session);
   });
 
   // ---------- Cargar documentos desde todas las fuentes ----------
