@@ -168,7 +168,7 @@
   .empty{padding:48px 24px;text-align:center;color:var(--ink-faint);font-size:.9rem}
 
   .detail-pane{display:flex;flex-direction:column;background:var(--surface-2);min-height:0}
-  .pane-head{display:flex;align-items:center;gap:8px;padding:13px 16px;border-bottom:1px solid var(--line);background:var(--brand-tint);color:var(--brand);font-size:.85rem;font-weight:700;flex:none}
+  .pane-head{display:flex;align-items:center;gap:7px;padding:6px 16px;border-bottom:1px solid var(--line);background:var(--brand-tint);color:var(--brand);font-size:.78rem;font-weight:700;flex:none}
   /* Botón flotante "Consulta Contenido" */
   .fab{position:fixed;right:22px;bottom:22px;z-index:60;display:flex;align-items:center;gap:10px;padding:8px 18px 8px 8px;border:0;border-radius:40px;background:linear-gradient(135deg,#e8912e,#c96f1a);color:#fff;font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer;box-shadow:0 8px 22px rgba(0,0,0,.3)}
   .fab:hover{filter:brightness(1.06)}
@@ -200,11 +200,13 @@
   .chat-disclaimer{font-size:.7rem;color:var(--warn);background:var(--warn-bg);text-align:center;padding:8px 12px;line-height:1.35;border-top:1px solid var(--line)}
   .pane-body{flex:1;min-height:0;display:flex;flex-direction:column}
   .viewer-empty{display:grid;place-items:center;height:100%;color:var(--ink-faint);text-align:center;padding:30px}
-  .doc-head{padding:16px 22px;border-bottom:1px solid var(--line);background:var(--surface);flex:none}
+  .doc-head{padding:6px 16px;border-bottom:1px solid var(--line);background:var(--surface);flex:none}
   .doc-head .sub{color:var(--brand);font-weight:700;font-size:.78rem}
   .doc-head h2{margin:3px 0 8px;font-size:1rem;overflow-wrap:anywhere}
   .doc-head .metas{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:.76rem;color:var(--ink-soft)}
-  .doc-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .doc-actions{display:flex;gap:8px;margin-top:0;flex-wrap:wrap;align-items:center}
+  .doc-actions .btn{padding:6px 12px;font-size:.82rem;border-radius:7px}
+  .doc-actions .btn svg{width:13px;height:13px}
   .pdf-wrap{flex:1;min-height:0;background:#525659}
   .pdf-wrap iframe{width:100%;height:100%;border:0;display:block}
 
