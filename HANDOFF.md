@@ -51,6 +51,11 @@ Contacto/admin: `mmontoya@serfor.gob.pe`.
   El lote OPR pasa de 116 a **231 documentos** en **132 normas**, de las cuales
   **82 tienen varios archivos** y se muestran anidadas.
   **Falta ejecutar el SQL y migrar** (Pendientes).
+- **Carga masiva (2026-09-06):** pestaña *Nuevos registros* → plantilla CSV
+  descargable, selección de los PDF y **validación bloqueante**: el botón de
+  subir solo se habilita con cero errores. Comprueba cabecera, tipos, estados,
+  fechas, años, duplicados, tamaño, correspondencia CSV↔PDF en los dos sentidos
+  y `parte` sin `carpeta`. Si una fila falla al subir, borra su PDF del bucket.
 - **Repo en GitHub** actualizado. ⚠️ **Es público**, no privado (verificado el
   2026-09-04 sin autenticación). No contiene credenciales — solo la clave
   `sb_publishable_` de `config.js`, que es pública por diseño, y el RLS impide

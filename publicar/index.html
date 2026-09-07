@@ -122,6 +122,22 @@
   select.filter:focus{outline:2px solid var(--brand);outline-offset:1px}
   .count-pill{font-size:.8rem;color:var(--ink-soft);margin-left:auto;font-variant-numeric:tabular-nums}
   .aviso-barra{background:var(--stop-bg);color:var(--stop);font-size:.84rem;padding:10px 24px;border-bottom:1px solid var(--line);flex:none}
+
+  /* Carga masiva */
+  .pasos{margin:0 0 16px;padding-left:20px;font-size:.86rem;color:var(--ink-soft);line-height:1.7}
+  .pasos code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:.92em;color:var(--ink)}
+  .cols{width:100%;border-collapse:collapse;font-size:.8rem;margin:0 0 16px}
+  .cols th{text-align:left;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);padding:6px 8px;border-bottom:1px solid var(--line)}
+  .cols td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+  .cols td:first-child{font-family:ui-monospace,Consolas,monospace;font-weight:600;color:var(--brand);white-space:nowrap}
+  .oblig{color:var(--stop);font-weight:700}
+  .informe{margin-top:14px;font-size:.85rem;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+  .informe-cab{padding:10px 12px;font-weight:600}
+  .informe.ok .informe-cab{background:var(--ok-bg);color:var(--ok)}
+  .informe.mal .informe-cab{background:var(--stop-bg);color:var(--stop)}
+  .informe ul{margin:0;padding:10px 12px 12px 30px;max-height:230px;overflow-y:auto;background:var(--surface)}
+  .informe li{margin-bottom:5px;color:var(--ink-soft)}
+  .informe li b{color:var(--stop)}
   .aviso-barra code{background:rgba(0,0,0,.08);padding:1px 5px;border-radius:4px;font-size:.92em}
   .role.alerta{background:var(--stop);color:#fff}
 
@@ -429,6 +445,58 @@
           </div>
         </form>
       </div>
+      <form class="form-card usr-card" id="masivaForm">
+        <h2>Carga masiva</h2>
+        <p class="hint">Para subir varios documentos de una vez hay que seguir el formato exacto.
+          No es opcional: si el archivo no cumple, la carga no se habilita.</p>
+
+        <ol class="pasos">
+          <li>Descarga la plantilla y ábrela en Excel.</li>
+          <li>Completa <b>una fila por documento</b>. Las líneas que empiezan por <code>#</code> son ejemplos: bórralas o déjalas, se ignoran.</li>
+          <li>Guárdala como <b>CSV</b> (separado por punto y coma).</li>
+          <li>Elige aquí la plantilla y <b>todos los PDF</b> que menciona.</li>
+          <li>Revisa el informe. Si hay un solo error, corrígelo y vuelve a intentarlo.</li>
+        </ol>
+
+        <table class="cols">
+          <thead><tr><th>Columna</th><th>Obligatoria</th><th>Contenido</th></tr></thead>
+          <tbody>
+            <tr><td>archivo</td><td class="oblig">Sí</td><td>Nombre exacto del PDF, con extensión. Debe estar entre los que selecciones.</td></tr>
+            <tr><td>titulo</td><td class="oblig">Sí</td><td>Denominación de la norma.</td></tr>
+            <tr><td>tipo</td><td class="oblig">Sí</td><td id="tiposValidos">—</td></tr>
+            <tr><td>entidad</td><td>No</td><td>Ej: SERFOR, MIDAGRI, PCM.</td></tr>
+            <tr><td>anio</td><td>No</td><td>Cuatro cifras, entre 1990 y 2100.</td></tr>
+            <tr><td>estado</td><td>No</td><td>Vigente, Modificada o Derogada. Vacío = Vigente.</td></tr>
+            <tr><td>fecha</td><td>No</td><td>Fecha de la norma, como <code>AAAA-MM-DD</code>.</td></tr>
+            <tr><td>carpeta</td><td>No</td><td>Número de la norma. Agrupa varios PDF bajo una misma norma.</td></tr>
+            <tr><td>parte</td><td>No</td><td>Resolucion, Documento, Anexo o Expediente. Exige <code>carpeta</code>.</td></tr>
+          </tbody>
+        </table>
+
+        <div class="form-grid">
+          <div class="field">
+            <label for="mFuente">Guardar en *</label>
+            <select id="mFuente"></select>
+          </div>
+          <div class="field">
+            <label for="mCsv">Plantilla completada (CSV) *</label>
+            <input id="mCsv" type="file" accept=".csv,text/csv">
+          </div>
+          <div class="field full">
+            <label for="mPdfs">Archivos PDF *</label>
+            <input id="mPdfs" type="file" accept="application/pdf" multiple>
+          </div>
+        </div>
+
+        <div id="mInforme"></div>
+
+        <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn" id="mSubir" type="submit" disabled>Subir documentos</button>
+          <button class="btn ghost" type="button" id="mPlantilla">Descargar plantilla</button>
+          <button class="btn ghost" type="reset" id="mLimpiar">Limpiar</button>
+        </div>
+      </form>
+
       <div id="noAdmin" class="noadmin" hidden>
         <h2>Solo administradores</h2>
         <p>Tu cuenta no tiene permisos de administrador. Para agregar documentos, solí­citalos a la OTI.</p>
@@ -799,6 +867,12 @@
     document.getElementById('campoFuente').hidden = disponibles.length < 2;
     el.onchange = sincronizarCampoCol;
     sincronizarCampoCol();
+
+    // Mismo destino para la carga masiva
+    const em = document.getElementById('mFuente');
+    if(em) em.innerHTML = disponibles.map(f=>`<option value="${esc(f.tabla)}">${esc(f.nombre)}</option>`).join('');
+    const tv = document.getElementById('tiposValidos');
+    if(tv) tv.textContent = 'Uno de: ' + ORDEN.join(', ') + '.';
   }
   // Solo se ofrece Coleccion si la tabla destino tiene esa columna
   function sincronizarCampoCol(){
@@ -1121,6 +1195,223 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
       msg.className='form-msg err'; msg.textContent = err.message;
     }
     btn.disabled = false; btn.textContent = 'Crear cuenta';
+  });
+
+  // ---------- Carga masiva ----------
+  //  El formato NO es una sugerencia: se valida entero y, mientras haya un solo
+  //  error, el boton de subir sigue deshabilitado. Asi no entran a la base
+  //  documentos a medias ni PDF huerfanos.
+  const COLUMNAS = ['archivo','titulo','tipo','entidad','anio','estado','fecha','carpeta','parte'];
+  const ESTADOS  = ['Vigente','Modificada','Derogada'];
+  const PARTES   = ['Resolucion','Documento','Anexo','Expediente'];
+  let MASIVA = { filas: [], pdfs: new Map(), listo: false };
+
+  // Excel guarda en la codificacion de Windows; si no es UTF-8 valido se reintenta.
+  async function leerTexto(file){
+    const buf = await file.arrayBuffer();
+    try { return new TextDecoder('utf-8', { fatal:true }).decode(buf); }
+    catch(_){ return new TextDecoder('windows-1252').decode(buf); }
+  }
+
+  // CSV con comillas dobles y separador ; o ,
+  function partirCsv(texto){
+    const limpio = texto.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
+    const cab = limpio.split('\n')[0] || '';
+    const sep = (cab.split(';').length > cab.split(',').length) ? ';' : ',';
+    const filas = []; let campo = '', fila = [], comillas = false;
+    for(let i=0;i<limpio.length;i++){
+      const c = limpio[i];
+      if(comillas){
+        if(c === '"'){ if(limpio[i+1] === '"'){ campo += '"'; i++; } else comillas = false; }
+        else campo += c;
+      } else if(c === '"'){ comillas = true; }
+      else if(c === sep){ fila.push(campo); campo = ''; }
+      else if(c === '\n'){ fila.push(campo); filas.push(fila); fila = []; campo = ''; }
+      else campo += c;
+    }
+    if(campo !== '' || fila.length){ fila.push(campo); filas.push(fila); }
+    return filas.map(f => f.map(x => x.trim()));
+  }
+
+  function plantillaCsv(){
+    const ej1 = ['DIRECTIVA-001-2026.pdf','Directiva General N 001-2026 sobre gestion documental','Directiva','SERFOR','2026','Vigente','2026-03-14','',''];
+    const ej2 = ['RES-045-2026.pdf','Aprueban los Lineamientos de fiscalizacion','Lineamientos','SERFOR','2026','Vigente','2026-05-02','RDE N 045-2026-MIDAGRI-SERFOR-DE','Resolucion'];
+    const ej3 = ['LIN-045-2026.pdf','Lineamientos de fiscalizacion','Lineamientos','SERFOR','2026','Vigente','2026-05-02','RDE N 045-2026-MIDAGRI-SERFOR-DE','Documento'];
+    const lineas = [
+      COLUMNAS.join(';'),
+      '# Las lineas que empiezan por # son ejemplos y NO se cargan. Borralas o dejalas.',
+      '# ' + ej1.join(';'),
+      '# ' + ej2.join(';'),
+      '# ' + ej3.join(';')
+    ];
+    // BOM para que Excel respete las tildes
+    return '\uFEFF' + lineas.join('\r\n') + '\r\n';
+  }
+
+  document.getElementById('mPlantilla').onclick = ()=>{
+    const url = URL.createObjectURL(new Blob([plantillaCsv()], { type:'text/csv;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = 'plantilla-carga-masiva.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  };
+
+  function informe(clase, titulo, puntos){
+    const el = document.getElementById('mInforme');
+    el.className = 'informe ' + clase;
+    el.innerHTML = `<div class="informe-cab">${esc(titulo)}</div>` +
+      (puntos && puntos.length ? `<ul>${puntos.map(t=>`<li>${t}</li>`).join('')}</ul>` : '');
+  }
+
+  async function validarMasiva(){
+    const btn = document.getElementById('mSubir');
+    MASIVA = { filas: [], pdfs: new Map(), listo: false };
+    btn.disabled = true; btn.textContent = 'Subir documentos';
+
+    const fCsv  = document.getElementById('mCsv').files[0];
+    const fPdfs = [...document.getElementById('mPdfs').files];
+    if(!fCsv && !fPdfs.length){ document.getElementById('mInforme').className=''; document.getElementById('mInforme').innerHTML=''; return; }
+    if(!fCsv){  informe('mal','Falta la plantilla CSV.', []); return; }
+    if(!fPdfs.length){ informe('mal','Faltan los archivos PDF.', []); return; }
+
+    fPdfs.forEach(f => MASIVA.pdfs.set(f.name.toLowerCase(), f));
+
+    const filas = partirCsv(await leerTexto(fCsv));
+    const errores = [];
+    if(!filas.length){ informe('mal','La plantilla esta vacia.', []); return; }
+
+    // Cabecera: deben estar todas las columnas y con ese nombre
+    const cab = filas[0].map(c => c.toLowerCase());
+    const faltan = COLUMNAS.filter(c => !cab.includes(c));
+    if(faltan.length){
+      informe('mal','La cabecera no coincide con la plantilla.',
+        [`Faltan las columnas: <b>${esc(faltan.join(', '))}</b>.`,
+         'Descarga la plantilla de nuevo y no cambies la primera fila.']);
+      return;
+    }
+    const col = {}; COLUMNAS.forEach(c => col[c] = cab.indexOf(c));
+
+    const tiposOk = ORDEN.map(t=>t.toLowerCase());
+    const vistos = new Set();
+    const filasOk = [];
+
+    for(let i=1;i<filas.length;i++){
+      const f = filas[i];
+      if(!f.length || f.every(x => x === '')) continue;
+      if((f[0]||'').startsWith('#')) continue;               // linea de ejemplo
+      const n = i + 1;                                        // numero de fila en Excel
+      const v = c => (f[col[c]] || '').trim();
+      const err = m => errores.push(`Fila <b>${n}</b>: ${m}`);
+
+      const archivo = v('archivo'), titulo = v('titulo'), tipo = v('tipo');
+      if(!archivo){ err('falta <b>archivo</b>.'); continue; }
+      if(!titulo)  err('falta <b>titulo</b>.');
+      if(!tipo)    err('falta <b>tipo</b>.');
+      else if(!tiposOk.includes(tipo.toLowerCase())) err(`el tipo <b>${esc(tipo)}</b> no es valido.`);
+
+      const clave = archivo.toLowerCase();
+      if(vistos.has(clave)) err(`el archivo <b>${esc(archivo)}</b> esta repetido.`);
+      vistos.add(clave);
+
+      const pdf = MASIVA.pdfs.get(clave);
+      if(!pdf) err(`no seleccionaste el PDF <b>${esc(archivo)}</b>.`);
+      else if(pdf.size > 50*1024*1024) err(`<b>${esc(archivo)}</b> pesa ${(pdf.size/1048576).toFixed(1)} MB y el limite es 50 MB.`);
+
+      const anio = v('anio');
+      if(anio && !/^\d{4}$/.test(anio)) err(`el anio <b>${esc(anio)}</b> no tiene cuatro cifras.`);
+      else if(anio && (+anio < 1990 || +anio > 2100)) err(`el anio <b>${esc(anio)}</b> esta fuera de rango.`);
+
+      const estado = v('estado');
+      if(estado && !ESTADOS.some(e => e.toLowerCase() === estado.toLowerCase()))
+        err(`el estado <b>${esc(estado)}</b> no es valido.`);
+
+      const fecha = v('fecha');
+      if(fecha && !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) err(`la fecha <b>${esc(fecha)}</b> no tiene el formato AAAA-MM-DD.`);
+
+      const parte = v('parte'), carpeta = v('carpeta');
+      if(parte && !PARTES.some(x => x.toLowerCase() === parte.toLowerCase()))
+        err(`la parte <b>${esc(parte)}</b> no es valida.`);
+      if(parte && !carpeta) err('si indicas <b>parte</b> tienes que indicar <b>carpeta</b>.');
+
+      filasOk.push({ archivo, titulo, tipo, entidad:v('entidad')||null,
+                     anio: anio ? +anio : null,
+                     estado: estado || 'Vigente',
+                     fecha: fecha || null,
+                     carpeta: carpeta || null, parte: parte || null, pdf });
+    }
+
+    // PDF seleccionados que ninguna fila menciona
+    const mencionados = new Set(filasOk.map(r => r.archivo.toLowerCase()));
+    [...MASIVA.pdfs.keys()].forEach(k => {
+      if(!mencionados.has(k)) errores.push(`El PDF <b>${esc(MASIVA.pdfs.get(k).name)}</b> no aparece en ninguna fila.`);
+    });
+
+    if(!filasOk.length && !errores.length) errores.push('La plantilla no tiene ninguna fila con datos.');
+
+    if(errores.length){
+      informe('mal', `No se puede cargar: ${errores.length} problema(s) por corregir.`, errores.slice(0,40)
+        .concat(errores.length>40 ? [`… y ${errores.length-40} mas.`] : []));
+      return;
+    }
+
+    MASIVA.filas = filasOk; MASIVA.listo = true;
+    const normas = new Set(filasOk.filter(r=>r.carpeta).map(r=>r.carpeta));
+    informe('ok', `Todo correcto: ${filasOk.length} documento(s) listos para subir.`,
+      normas.size ? [`Se agruparan en <b>${normas.size}</b> norma(s) con varios documentos.`] : []);
+    btn.disabled = false;
+    btn.textContent = `Subir ${filasOk.length} documento(s)`;
+  }
+
+  document.getElementById('mCsv').onchange  = validarMasiva;
+  document.getElementById('mPdfs').onchange = validarMasiva;
+  document.getElementById('mLimpiar').onclick = ()=>{
+    setTimeout(()=>{ MASIVA = { filas:[], pdfs:new Map(), listo:false };
+      document.getElementById('mInforme').className=''; document.getElementById('mInforme').innerHTML='';
+      const b=document.getElementById('mSubir'); b.disabled=true; b.textContent='Subir documentos'; }, 0);
+  };
+
+  document.getElementById('masivaForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    if(!isAdmin || !MASIVA.listo) return;
+    const btn = document.getElementById('mSubir');
+    const tabla = document.getElementById('mFuente').value;
+    const nombreFuente = (FUENTES.find(f=>f.tabla===tabla)||{}).nombre || COL_BASE;
+    // El prefijo decide quien puede leer el archivo (ver supabase-tres-perfiles.sql)
+    const prefijo = tabla === 'normativos_opr' ? 'opr_' : '';
+
+    btn.disabled = true;
+    const fallos = [];
+    let hechos = 0;
+    for(const r of MASIVA.filas){
+      btn.textContent = `Subiendo ${hechos+1} de ${MASIVA.filas.length}…`;
+      const ruta = `${prefijo}${slug(r.titulo)}_${Date.now()}_${hechos}.pdf`;
+      try {
+        const up = await sb.storage.from('documentos').upload(ruta, r.pdf, { contentType:'application/pdf', upsert:false });
+        if(up.error) throw new Error(up.error.message);
+        const fila = { tipo:r.tipo, titulo:r.titulo, entidad:r.entidad, anio:r.anio,
+                       estado:r.estado, fecha:r.fecha, kb:Math.round(r.pdf.size/1024),
+                       archivo:ruta, original:r.archivo, created_by:currentUser.id };
+        if(COL_OK[tabla]) fila.coleccion = nombreFuente;
+        if(r.carpeta) fila.carpeta = r.carpeta;
+        if(r.parte)   fila.parte   = r.parte;
+        const ins = await sb.from(tabla).insert(fila);
+        if(ins.error){
+          await sb.storage.from('documentos').remove([ruta]);   // no dejar archivo huerfano
+          throw new Error(ins.error.message);
+        }
+        hechos++;
+      } catch(err){
+        fallos.push(`<b>${esc(r.archivo)}</b>: ${esc(err.message)}`);
+      }
+    }
+
+    if(fallos.length) informe('mal', `Subidos ${hechos} de ${MASIVA.filas.length}. Fallaron ${fallos.length}:`, fallos);
+    else informe('ok', `Listo: ${hechos} documento(s) incorporados a ${nombreFuente}.`, []);
+
+    btn.textContent = 'Subir documentos'; btn.disabled = true;
+    MASIVA.listo = false;
+    document.getElementById('masivaForm').reset();
+    await loadDocs();
   });
 
   // ---------- Navegación entre vistas ----------

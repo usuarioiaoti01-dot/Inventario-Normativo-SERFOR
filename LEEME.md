@@ -138,13 +138,43 @@ barra de herramientas. Para eso sirve `supabase-coleccion.sql` (opcional).
 3. **Carga los documentos** con cualquiera de las dos vías de abajo, indicando la
    tabla destino.
 
-### Vía A — pocos documentos: desde la app
+### Vía A — varios documentos a la vez: carga masiva
+
+Como administrador, pestaña **Nuevos registros** → tarjeta *Carga masiva*.
+**El formato es obligatorio**: mientras el archivo no cumpla, el botón de subir
+permanece deshabilitado.
+
+1. Pulsa **Descargar plantilla**. Es un CSV separado por punto y coma.
+2. Una fila por documento. Las líneas que empiezan por `#` son ejemplos y se ignoran.
+3. Guárdala como CSV y selecciónala junto con **todos** los PDF que menciona.
+4. Aparece un informe. Si hay errores, indica **el número de fila** de cada uno.
+
+| Columna | Obligatoria | Contenido |
+|---|---|---|
+| `archivo` | **sí** | Nombre exacto del PDF, con extensión |
+| `titulo` | **sí** | Denominación de la norma |
+| `tipo` | **sí** | Directiva, Reglamento, Ley, Lineamientos… (la app lista los válidos) |
+| `entidad` | no | SERFOR, MIDAGRI, PCM… |
+| `anio` | no | Cuatro cifras, 1990–2100 |
+| `estado` | no | Vigente, Modificada o Derogada. Vacío = Vigente |
+| `fecha` | no | `AAAA-MM-DD` |
+| `carpeta` | no | Número de norma. Agrupa varios PDF bajo una misma norma |
+| `parte` | no | Resolucion, Documento, Anexo o Expediente. Exige `carpeta` |
+
+Se rechaza la carga si falta una columna, si un tipo o estado no es válido, si un
+PDF citado no se seleccionó, si sobra un PDF que ninguna fila menciona, si hay
+nombres repetidos o si algún archivo supera los 50 MB.
+
+Si una fila falla al subirse, su PDF se borra del bucket para no dejar archivos
+huérfanos, y el informe dice cuáles fallaron.
+
+### Vía B — un documento: desde la app
 
 Entra como administrador → pestaña **Nuevos registros**. Si hay más de una tabla,
 aparece el selector **Guardar en** para elegir el destino. El campo **Colección**
 solo se muestra si esa tabla tiene la columna.
 
-### Vía B — lote masivo: por PowerShell 7 (`pwsh`)
+### Vía C — lote muy grande: por PowerShell 7 (`pwsh`)
 
 1. Generar el catálogo y copiar los PDF a `documentos/` sin borrar nada:
 
