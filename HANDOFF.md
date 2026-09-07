@@ -303,6 +303,12 @@ Navegador (index.html + config.js + lib/supabase.js)
 - Regla general: **cada cambio en `supabase/functions/**` obliga a redesplegar
   desde el panel.** El repositorio no despliega nada por sí solo.
 
+**SQL Editor: un diagnóstico, UNA sola consulta**
+- El editor de Supabase muestra solo el resultado de la **última** sentencia.
+  Un diagnóstico repartido en varios `select` pierde todo lo anterior y se
+  interpreta a ciegas. Ya pasó dos veces. Los `.sql` de diagnóstico deben
+  devolver una sola tabla (`union all` en una única consulta).
+
 **El panel y el repositorio divergen — comprobar siempre la base**
 - Van **tres** veces que aparecen objetos en Supabase que no están en estos
   scripts, probablemente creados con el asistente del panel:
