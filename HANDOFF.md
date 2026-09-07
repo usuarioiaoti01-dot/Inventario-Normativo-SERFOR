@@ -181,6 +181,11 @@ Navegador (index.html + config.js + lib/supabase.js)
    denominaciones llegan a 300 caracteres y al final no se distinguirían.
    En la lista los títulos se recortan a 3 líneas (texto completo en el tooltip
    y en la ficha).
+11b. **El rótulo de la pestaña se deduce del perfil, no se fija a mano.** Estuvo
+   fijo en "Inventario OPR" y a un usuario del perfil *Normas OTI* le decía OPR
+   mientras la lista mostraba, correctamente, Normas OTI. Ahora: un solo
+   conjunto → "Inventario " + su nombre corto (`OPR` / `Normas OTI`); varios
+   conjuntos → "Inventario" a secas.
 12. **Filtro por día** y **fecha de publicación real.** La fecha se extrae del
    propio PDF con `extraer-fechas-opr.ps1` (usa `pdftotext`, que trae Git for
    Windows). Criterios, medidos y no supuestos:

@@ -640,8 +640,8 @@
   // modelo) y agregar aquí una línea. Los PDF de todas las fuentes viven en el
   // mismo bucket 'documentos', así que el visor y el asistente no cambian.
   const FUENTES = [
-    { tabla:"documentos",     nombre:"Normas OTI" },
-    { tabla:"normativos_opr", nombre:"Normativos OPR" }
+    { tabla:"documentos",     nombre:"Normas OTI",     corto:"Normas OTI" },
+    { tabla:"normativos_opr", nombre:"Normativos OPR", corto:"OPR" }
   ];
   const COL_BASE = "Normas OTI";   // coleccion de los documentos ya cargados
   // grupo:"" = todas las fuentes  |  col:"" = todas las colecciones de la fuente activa
@@ -827,6 +827,20 @@
     document.getElementById('noAdmin').hidden = isAdmin;
     showView('inv');
     await loadDocs();
+    rotularInventario();
+  }
+
+  // Un Especialista ve "Inventario OPR"; el perfil Normas OTI, "Inventario
+  // Normas OTI"; un Administrador, que ve los dos conjuntos, solo "Inventario".
+  // Fijarlo a mano hacia que a unos les mintiera el rotulo.
+  function rotularInventario(){
+    const btn = document.getElementById('navInv');
+    if(GRUPOS.length === 1){
+      const f = FUENTES.find(x => x.nombre === GRUPOS[0]);
+      btn.textContent = 'Inventario ' + ((f && f.corto) || GRUPOS[0]);
+    } else {
+      btn.textContent = 'Inventario';
+    }
   }
 
   // ---------- Cambio de clave obligatorio ----------
