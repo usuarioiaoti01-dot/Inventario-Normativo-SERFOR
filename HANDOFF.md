@@ -292,6 +292,17 @@ Navegador (index.html + config.js + lib/supabase.js)
   La demo **no** se actualiza sola al empujar `main`.
 - `web.config` se deja fuera: es especifico de IIS y en Pages es inerte.
 
+**La Edge Function desplegada puede ser vieja — y falla en silencio**
+- ⚠️ Ocurrió el 2026-09-07: se creó una cuenta con perfil *Normas OTI* y quedó
+  como *Especialista*. La versión desplegada de `admin-usuarios` solo conocía
+  dos roles y hacía `ROLES.includes(rol) ? rol : "especialista"`: descartaba el
+  tercero **sin avisar**. Se corrige redesplegando la función.
+- Por eso la app ahora **verifica el resultado**: tras crear una cuenta o cambiar
+  un perfil, vuelve a leer la lista y compara el rol real con el pedido. Si no
+  coinciden, avisa de que la función desplegada está desfasada.
+- Regla general: **cada cambio en `supabase/functions/**` obliga a redesplegar
+  desde el panel.** El repositorio no despliega nada por sí solo.
+
 **El panel y el repositorio divergen — comprobar siempre la base**
 - Van **tres** veces que aparecen objetos en Supabase que no están en estos
   scripts, probablemente creados con el asistente del panel:
