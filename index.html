@@ -63,10 +63,10 @@
 
   /* ---------- App ---------- */
   #app{display:flex;flex-direction:column;height:100vh}
-  header.top{background:var(--brand-deep);color:#f0f4ec;padding:0 24px;display:flex;align-items:center;gap:14px;flex:none;height:60px}
-  .seal-sm{width:38px;height:38px;flex:none;border-radius:8px;background:linear-gradient(150deg,var(--accent),#8a6320);display:grid;place-items:center;color:#fff;font-weight:700;font-size:.95rem;box-shadow:inset 0 0 0 2px rgba(255,255,255,.18)}
-  .brand-txt h1{margin:0;font-size:1.02rem;font-weight:650}
-  .brand-txt p{margin:0;font-size:.68rem;color:#b9cbb1;letter-spacing:.04em;text-transform:uppercase}
+  header.top{background:var(--brand-deep);color:#f0f4ec;padding:0 24px;display:flex;align-items:center;gap:16px;flex:none;height:76px}
+  .seal-sm{width:48px;height:48px;flex:none;border-radius:10px;background:linear-gradient(150deg,var(--accent),#8a6320);display:grid;place-items:center;color:#fff;font-weight:700;font-size:1.2rem;box-shadow:inset 0 0 0 2px rgba(255,255,255,.18)}
+  .brand-txt h1{margin:0;font-size:1.3rem;font-weight:650;line-height:1.25}
+  .brand-txt p{margin:0;font-size:.86rem;color:#b9cbb1;letter-spacing:.04em;text-transform:uppercase;line-height:1.3}
   .navtabs{display:flex;gap:4px;margin-left:24px;height:100%}
   .navtabs button{background:transparent;border:0;color:#c6d6be;font-size:.88rem;font-weight:600;padding:0 16px;cursor:pointer;font-family:inherit;border-bottom:3px solid transparent}
   .navtabs button.on{color:#fff;border-bottom-color:var(--accent)}
@@ -76,17 +76,81 @@
   .userbox .role{background:rgba(255,255,255,.14);padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
   .icon-btn{background:rgba(255,255,255,.12);border:0;color:#f0f4ec;border-radius:8px;width:34px;height:34px;cursor:pointer;font-size:.95rem}
 
+  /* La cabecera crecio al sumar la pestaña Usuarios: en pantallas angostas se
+     recorta lo prescindible (subtitulo y correo) antes que desbordar la pagina. */
+  @media (max-width:1180px){
+    header.top{padding:0 16px;gap:12px;height:70px}
+    .seal-sm{width:42px;height:42px;font-size:1.05rem}
+    .brand-txt h1{font-size:1.1rem}
+    .brand-txt p{font-size:.74rem}
+    .navtabs{margin-left:12px}
+    .navtabs button{padding:0 12px;font-size:.84rem}
+  }
+  @media (max-width:1000px){
+    header.top{padding:0 14px;gap:10px;height:64px}
+    .seal-sm{width:38px;height:38px;font-size:.95rem}
+    .brand-txt h1{font-size:1rem}
+    .brand-txt p{display:none}
+    .navtabs{margin-left:10px}
+    .navtabs button{padding:0 11px;font-size:.82rem}
+  }
+  @media (max-width:760px){
+    .brand-txt h1{font-size:.9rem}
+    #userEmail{display:none}
+    .navtabs button{padding:0 8px;font-size:.78rem}
+  }
+  @media (max-width:560px){
+    .brand-txt{display:none}
+    .userbox .role{display:none}
+  }
+
   .view{flex:1;min-height:0;display:flex;flex-direction:column}
 
   /* Toolbar */
   .toolbar{background:var(--surface);border-bottom:1px solid var(--line);padding:12px 24px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;flex:none}
-  .search{position:relative;flex:1 1 300px;min-width:220px}
-  .search input{width:100%;padding:10px 12px 10px 38px;border:1px solid var(--line-strong);border-radius:var(--radius);background:var(--bg);color:var(--ink);font-size:.92rem}
+  .search{position:relative;flex:0 1 330px;min-width:170px}
+  .search input{width:100%;padding:7px 10px 7px 32px;border:1px solid var(--line-strong);border-radius:var(--radius);background:var(--bg);color:var(--ink);font-size:.85rem}
   .search input:focus{outline:2px solid var(--brand);outline-offset:1px;border-color:var(--brand)}
-  .search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--ink-faint)}
-  select.filter{padding:10px 12px;border:1px solid var(--line-strong);border-radius:var(--radius);background:var(--surface);color:var(--ink);font-size:.86rem;cursor:pointer}
+  .search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--ink-faint)}
+  input.filter{padding:7px 10px;border:1px solid var(--line-strong);border-radius:var(--radius);background:var(--surface);color:var(--ink);font-size:.82rem;font-family:inherit}
+  input.filter:focus{outline:2px solid var(--brand);outline-offset:1px}
+  .fecha-caja{display:flex;align-items:center;gap:6px}
+  .fecha-caja label{font-size:.78rem;color:var(--ink-soft);white-space:nowrap}
+  .btn-limpiar{border:0;background:transparent;color:var(--ink-faint);cursor:pointer;font-size:1rem;line-height:1;padding:0 2px;font-family:inherit}
+  .btn-limpiar:hover{color:var(--stop)}
+  select.filter{padding:7px 10px;border:1px solid var(--line-strong);border-radius:var(--radius);background:var(--surface);color:var(--ink);font-size:.82rem;cursor:pointer}
   select.filter:focus{outline:2px solid var(--brand);outline-offset:1px}
   .count-pill{font-size:.8rem;color:var(--ink-soft);margin-left:auto;font-variant-numeric:tabular-nums}
+  .aviso-barra{background:var(--stop-bg);color:var(--stop);font-size:.84rem;padding:10px 24px;border-bottom:1px solid var(--line);flex:none}
+
+  /* Carga masiva */
+  .pasos{margin:0 0 16px;padding-left:20px;font-size:.86rem;color:var(--ink-soft);line-height:1.7}
+  .pasos code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:.92em;color:var(--ink)}
+  .cols{width:100%;border-collapse:collapse;font-size:.8rem;margin:0 0 16px}
+  .cols th{text-align:left;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);padding:6px 8px;border-bottom:1px solid var(--line)}
+  .cols td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+  .cols td:first-child{font-family:ui-monospace,Consolas,monospace;font-weight:600;color:var(--brand);white-space:nowrap}
+  .oblig{color:var(--stop);font-weight:700}
+  .informe{margin-top:14px;font-size:.85rem;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+  .informe-cab{padding:10px 12px;font-weight:600}
+  .informe.ok .informe-cab{background:var(--ok-bg);color:var(--ok)}
+  .informe.mal .informe-cab{background:var(--stop-bg);color:var(--stop)}
+  .informe ul{margin:0;padding:10px 12px 12px 30px;max-height:230px;overflow-y:auto;background:var(--surface)}
+  .informe li{margin-bottom:5px;color:var(--ink-soft)}
+  .informe li b{color:var(--stop)}
+
+  /* Ventana emergente del formato */
+  .modal-fondo{position:fixed;inset:0;background:rgba(10,16,8,.55);display:grid;place-items:center;padding:20px;z-index:50}
+  .modal-fondo[hidden]{display:none}
+  .modal{background:var(--surface);border-radius:14px;box-shadow:0 24px 70px rgba(0,0,0,.4);width:100%;max-width:780px;max-height:88vh;display:flex;flex-direction:column}
+  .modal-cab{display:flex;align-items:center;gap:10px;padding:14px 20px;border-bottom:1px solid var(--line);flex:none}
+  .modal-cab h2{margin:0;font-size:1.02rem;flex:1}
+  .modal-cuerpo{padding:18px 20px;overflow-y:auto;min-height:0}
+  .modal-pie{padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:10px;flex-wrap:wrap;flex:none}
+  .modal-x{background:transparent;border:0;color:var(--ink-faint);font-size:1.1rem;cursor:pointer;padding:2px 6px;font-family:inherit;line-height:1}
+  .modal-x:hover{color:var(--stop)}
+  .aviso-barra code{background:rgba(0,0,0,.08);padding:1px 5px;border-radius:4px;font-size:.92em}
+  .role.alerta{background:var(--stop);color:#fff}
 
   /* Pestanas de coleccion (lotes de normativa) */
   .colltabs{background:var(--surface);border-bottom:1px solid var(--line);padding:0 24px;display:flex;gap:2px;align-items:flex-end;flex:none;overflow-x:auto}
@@ -106,6 +170,19 @@
   .row:hover{background:var(--brand-tint)}
   .row.active{background:var(--brand-tint);box-shadow:inset 3px 0 0 var(--brand)}
   .doc-ico{width:34px;height:34px;flex:none;border-radius:7px;background:var(--brand-tint);color:var(--brand);display:grid;place-items:center;margin-top:2px}
+
+  /* Normas con varios documentos: fila padre plegable e hijos indentados */
+  .row.norma{background:var(--surface-2)}
+  .row.norma:hover{background:var(--brand-tint)}
+  .chev{width:34px;height:34px;flex:none;border:0;border-radius:7px;background:var(--brand-tint);color:var(--brand);cursor:pointer;font-size:.8rem;line-height:1;margin-top:2px;font-family:inherit}
+  .chev:hover{background:var(--brand);color:#fff}
+  .row.hijo{padding-left:52px;background:var(--surface);position:relative}
+  .row.hijo::before{content:"";position:absolute;left:30px;top:0;bottom:0;width:2px;background:var(--line-strong)}
+  .row.hijo .doc-ico{width:26px;height:26px;background:transparent;color:var(--ink-faint)}
+  .row.hijo .name{font-size:.84rem;color:var(--ink-soft)}
+  .row.hijo.active .name{color:var(--ink)}
+  .pchip{font-size:.66rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:2px 7px;border-radius:5px;background:var(--line);color:var(--ink-soft);white-space:nowrap}
+  .nchip{font-size:.7rem;font-weight:700;color:var(--brand);background:var(--brand-tint);border-radius:10px;padding:1px 8px;white-space:nowrap}
   /* Titulos largos (denominaciones de hasta ~300 caracteres): 3 lineas como maximo.
      El texto completo queda en el tooltip y en la ficha del documento. */
   .row-main .name{font-size:.9rem;color:var(--ink);font-weight:500;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
@@ -118,7 +195,7 @@
   .empty{padding:48px 24px;text-align:center;color:var(--ink-faint);font-size:.9rem}
 
   .detail-pane{display:flex;flex-direction:column;background:var(--surface-2);min-height:0}
-  .pane-head{display:flex;align-items:center;gap:8px;padding:13px 16px;border-bottom:1px solid var(--line);background:var(--brand-tint);color:var(--brand);font-size:.85rem;font-weight:700;flex:none}
+  .pane-head{display:flex;align-items:center;gap:7px;padding:6px 16px;border-bottom:1px solid var(--line);background:var(--brand-tint);color:var(--brand);font-size:.78rem;font-weight:700;flex:none}
   /* Botón flotante "Consulta Contenido" */
   .fab{position:fixed;right:22px;bottom:22px;z-index:60;display:flex;align-items:center;gap:10px;padding:8px 18px 8px 8px;border:0;border-radius:40px;background:linear-gradient(135deg,#e8912e,#c96f1a);color:#fff;font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer;box-shadow:0 8px 22px rgba(0,0,0,.3)}
   .fab:hover{filter:brightness(1.06)}
@@ -150,11 +227,13 @@
   .chat-disclaimer{font-size:.7rem;color:var(--warn);background:var(--warn-bg);text-align:center;padding:8px 12px;line-height:1.35;border-top:1px solid var(--line)}
   .pane-body{flex:1;min-height:0;display:flex;flex-direction:column}
   .viewer-empty{display:grid;place-items:center;height:100%;color:var(--ink-faint);text-align:center;padding:30px}
-  .doc-head{padding:16px 22px;border-bottom:1px solid var(--line);background:var(--surface);flex:none}
+  .doc-head{padding:6px 16px;border-bottom:1px solid var(--line);background:var(--surface);flex:none}
   .doc-head .sub{color:var(--brand);font-weight:700;font-size:.78rem}
   .doc-head h2{margin:3px 0 8px;font-size:1rem;overflow-wrap:anywhere}
   .doc-head .metas{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:.76rem;color:var(--ink-soft)}
-  .doc-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .doc-actions{display:flex;gap:8px;margin-top:0;flex-wrap:wrap;align-items:center}
+  .doc-actions .btn{padding:6px 12px;font-size:.82rem;border-radius:7px}
+  .doc-actions .btn svg{width:13px;height:13px}
   .pdf-wrap{flex:1;min-height:0;background:#525659}
   .pdf-wrap iframe{width:100%;height:100%;border:0;display:block}
 
@@ -165,6 +244,28 @@
   .form-card p.hint{margin:0 0 20px;color:var(--ink-soft);font-size:.86rem}
   .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
   .form-grid .full{grid-column:1 / -1}
+
+  /* Modulo de usuarios */
+  .usr-card{max-width:920px;margin:0 auto 22px}
+  .usr-tabla{width:100%;border-collapse:collapse;font-size:.86rem}
+  .usr-tabla th{text-align:left;font-size:.72rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-faint);padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+  .usr-tabla td{padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+  .usr-tabla tr:last-child td{border-bottom:0}
+  .usr-tabla .correo{font-weight:600;color:var(--ink)}
+  .usr-tabla .sec{font-size:.78rem;color:var(--ink-faint)}
+  .usr-tabla select{padding:6px 8px;border:1px solid var(--line-strong);border-radius:7px;background:var(--surface);color:var(--ink);font-family:inherit;font-size:.82rem}
+  .usr-acc{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+  .btn-mini{padding:6px 10px;font-size:.78rem;border-radius:7px;border:1px solid var(--line-strong);background:transparent;color:var(--ink-soft);cursor:pointer;font-family:inherit;font-weight:600}
+  .btn-mini:hover{background:var(--surface-2);color:var(--ink)}
+  .btn-mini.peligro{color:var(--stop);border-color:var(--stop)}
+  .btn-mini.peligro:hover{background:var(--stop);color:#fff}
+  .btn-mini:disabled{opacity:.4;cursor:default}
+  .etq{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:10px;white-space:nowrap}
+  .etq.admin{background:var(--accent);color:#fff}
+  .etq.esp{background:var(--brand-tint);color:var(--brand)}
+  .etq.pend{background:#f4e2c4;color:#7a5410}
+  [data-theme="dark"] .etq.pend{background:#4a3a1c;color:#e6c98a}
+  @media (max-width:640px){ .usr-tabla .ocultable{display:none} }
   @media (max-width:560px){.form-grid{grid-template-columns:1fr}}
   .filedrop{border:2px dashed var(--line-strong);border-radius:10px;padding:22px;text-align:center;color:var(--ink-faint);font-size:.86rem;cursor:pointer}
   .filedrop.has{border-color:var(--brand);color:var(--brand);background:var(--brand-tint)}
@@ -206,6 +307,31 @@
   </form>
 </div>
 
+<!-- ===== Cambio de clave obligatorio (primer ingreso) ===== -->
+<div id="claveScreen" class="auth-screen" hidden>
+  <form class="auth-card" id="claveForm">
+    <div class="seal">SF</div>
+    <h1>Define tu contraseña</h1>
+    <p class="subt">Primer ingreso</p>
+    <p style="font-size:.84rem;color:var(--ink-soft);margin:0 0 18px">
+      La clave que te entregó el administrador es temporal. Elige una propia para continuar.
+    </p>
+    <div id="claveMsg"></div>
+    <div class="field">
+      <label for="clave1">Nueva contraseña</label>
+      <input id="clave1" type="password" autocomplete="new-password" required minlength="8" placeholder="Mínimo 8 caracteres">
+    </div>
+    <div class="field">
+      <label for="clave2">Repítela</label>
+      <input id="clave2" type="password" autocomplete="new-password" required minlength="8">
+    </div>
+    <button class="btn block" id="claveBtn" type="submit">Guardar y entrar</button>
+    <p style="font-size:.76rem;color:var(--ink-faint);text-align:center;margin:16px 0 0">
+      <a href="#" id="claveSalir" style="color:inherit">Salir</a>
+    </p>
+  </form>
+</div>
+
 <!-- ===== Aplicación ===== -->
 <div id="app" hidden>
   <header class="top">
@@ -215,12 +341,13 @@
       <p>Servicio Nacional Forestal y de Fauna Silvestre</p>
     </div>
     <nav class="navtabs">
-      <button id="navInv" class="on" onclick="showView('inv')">Inventario</button>
+      <button id="navInv" class="on" onclick="showView('inv')">Inventario OPR</button>
       <button id="navNew" onclick="showView('new')" hidden>Nuevos registros</button>
+      <button id="navUsr" onclick="showView('usr')" hidden>Usuarios</button>
     </nav>
     <div class="top-spacer"></div>
     <div class="userbox">
-      <span class="role" id="roleTag">lector</span>
+      <span class="role" id="roleTag">Especialista</span>
       <span id="userEmail"></span>
     </div>
     <button class="icon-btn" id="themeBtn" title="Cambiar tema">◐</button>
@@ -239,6 +366,11 @@
       <select class="filter" id="fEnt"><option value="">Toda entidad</option></select>
       <select class="filter" id="fYear"><option value="">Todos los años</option></select>
       <select class="filter" id="fCol" hidden><option value="">Toda colección</option></select>
+      <span class="fecha-caja">
+        <label for="fFecha">Día</label>
+        <input class="filter" type="date" id="fFecha" title="Mostrar solo los documentos de esa fecha">
+        <button class="btn-limpiar" id="fFechaX" type="button" title="Quitar el filtro de fecha" hidden>✕</button>
+      </span>
       <span class="count-pill" id="countPill"></span>
     </div>
     <div class="workspace">
@@ -324,9 +456,135 @@
           </div>
         </form>
       </div>
+      <form class="form-card usr-card" id="masivaForm">
+        <h2>Carga masiva</h2>
+        <p class="hint">Para subir varios documentos de una vez hay que seguir el formato exacto.
+          No es opcional: si el archivo no cumple, la carga no se habilita.
+          <a href="#" id="verFormato">Ver el formato requerido</a>.</p>
+
+        <div id="bloqueFormato" hidden>
+        <ol class="pasos">
+          <li>Descarga la plantilla y ábrela en Excel.</li>
+          <li>Completa <b>una fila por documento</b>. Las líneas que empiezan por <code>#</code> son ejemplos: bórralas o déjalas, se ignoran.</li>
+          <li>Guárdala como <b>CSV</b> (separado por punto y coma).</li>
+          <li>Elige aquí la plantilla y <b>todos los PDF</b> que menciona.</li>
+          <li>Revisa el informe. Si hay un solo error, corrígelo y vuelve a intentarlo.</li>
+        </ol>
+
+        <table class="cols">
+          <thead><tr><th>Columna</th><th>Obligatoria</th><th>Contenido</th></tr></thead>
+          <tbody>
+            <tr><td>archivo</td><td class="oblig">Sí</td><td>Nombre exacto del PDF, con extensión. Debe estar entre los que selecciones.</td></tr>
+            <tr><td>titulo</td><td class="oblig">Sí</td><td>Denominación de la norma.</td></tr>
+            <tr><td>tipo</td><td class="oblig">Sí</td><td id="tiposValidos">—</td></tr>
+            <tr><td>entidad</td><td>No</td><td>Ej: SERFOR, MIDAGRI, PCM.</td></tr>
+            <tr><td>anio</td><td>No</td><td>Cuatro cifras, entre 1990 y 2100.</td></tr>
+            <tr><td>estado</td><td>No</td><td>Vigente, Modificada o Derogada. Vacío = Vigente.</td></tr>
+            <tr><td>fecha</td><td>No</td><td>Fecha de la norma, como <code>AAAA-MM-DD</code>.</td></tr>
+            <tr><td>carpeta</td><td>No</td><td>Número de la norma. Agrupa varios PDF bajo una misma norma.</td></tr>
+            <tr><td>parte</td><td>No</td><td>Resolucion, Documento, Anexo o Expediente. Exige <code>carpeta</code>.</td></tr>
+          </tbody>
+        </table>
+        </div>
+
+        <div class="form-grid">
+          <div class="field">
+            <label for="mFuente">Guardar en *</label>
+            <select id="mFuente"></select>
+          </div>
+          <div class="field">
+            <label for="mCsv">Plantilla completada (CSV) *</label>
+            <input id="mCsv" type="file" accept=".csv,text/csv">
+          </div>
+          <div class="field full">
+            <label for="mPdfs">Archivos PDF *</label>
+            <input id="mPdfs" type="file" accept="application/pdf" multiple>
+          </div>
+        </div>
+
+        <div id="mInforme"></div>
+
+        <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn" id="mSubir" type="submit" disabled>Subir documentos</button>
+          <button class="btn ghost" type="button" id="mPlantilla">Descargar plantilla</button>
+          <button class="btn ghost" type="reset" id="mLimpiar">Limpiar</button>
+        </div>
+      </form>
+
       <div id="noAdmin" class="noadmin" hidden>
         <h2>Solo administradores</h2>
-        <p>Tu cuenta tiene rol de <b>lector</b>. Para agregar documentos, solicita permisos de administrador a la OTI.</p>
+        <p>Tu cuenta no tiene permisos de administrador. Para agregar documentos, solí­citalos a la OTI.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vista: Usuarios (solo administradores) -->
+  <div id="viewUsr" class="view" hidden>
+    <div class="form-view">
+      <form class="form-card usr-card" id="crearUsrForm">
+        <h2>Crear cuenta de acceso</h2>
+        <p class="hint">La clave que definas aquí es temporal: al entrar por primera vez, la persona deberá cambiarla.</p>
+        <div class="form-grid">
+          <div class="field">
+            <label for="nCorreo">Correo institucional *</label>
+            <input id="nCorreo" type="email" required placeholder="nombre@serfor.gob.pe" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="nNombre">Nombre y apellidos</label>
+            <input id="nNombre" placeholder="Ej: Ana Quispe Ramírez" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="nRol">Perfil *</label>
+            <select id="nRol">
+              <option value="especialista">Especialista — solo Normativos OPR</option>
+              <option value="normas_oti">Normas OTI — solo Normas OTI</option>
+              <option value="admin">Administrador — ve todo y gestiona cuentas</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="nClave">Clave inicial *</label>
+            <input id="nClave" type="text" required minlength="8" placeholder="Mínimo 8 caracteres" autocomplete="off">
+          </div>
+        </div>
+        <div id="crearUsrMsg"></div>
+        <div style="margin-top:18px;display:flex;gap:10px">
+          <button class="btn" id="crearUsrBtn" type="submit">Crear cuenta</button>
+          <button class="btn ghost" type="button" id="generarClave">Sugerir clave</button>
+        </div>
+      </form>
+
+      <div class="form-card usr-card">
+        <h2>Cuentas registradas</h2>
+        <p class="hint" id="usrResumen">Cargando…</p>
+        <div style="overflow-x:auto">
+          <table class="usr-tabla">
+            <thead>
+              <tr>
+                <th>Cuenta</th><th>Perfil</th>
+                <th class="ocultable">Último acceso</th>
+                <th style="text-align:right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="usrCuerpo"></tbody>
+          </table>
+        </div>
+        <div id="usrMsg" style="margin-top:14px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ventana emergente: formato de la carga masiva -->
+  <div class="modal-fondo" id="modalFormato" hidden role="dialog" aria-modal="true" aria-labelledby="modalFormatoTit">
+    <div class="modal">
+      <div class="modal-cab">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--brand)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        <h2 id="modalFormatoTit">Formato para la carga masiva</h2>
+        <button class="modal-x" type="button" id="modalFormatoX" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="modal-cuerpo" id="modalFormatoCuerpo"></div>
+      <div class="modal-pie">
+        <button class="btn" type="button" id="modalPlantilla">Descargar plantilla</button>
+        <button class="btn ghost" type="button" id="modalCerrar">Cerrar</button>
       </div>
     </div>
   </div>
@@ -373,28 +631,40 @@
 
   let sb = null, INVENTARIO = [], isAdmin = false, currentUser = null;
   let GRUPOS = [];             // fuentes que respondieron (las tablas que existen)
+  let ROL = null;              // 'admin' | 'especialista' | 'normas_oti'
+  let CARPETAS = new Map();    // norma -> sus documentos (resolucion, anexo, etc.)
+  let VISIBLES = [];           // carpetas pintadas en el ultimo render, por indice
   const COL_OK = {};           // por tabla: si tiene la columna 'coleccion' (ver supabase-coleccion.sql)
   // Fuentes de datos: cada tabla de Supabase es una pestaña del inventario.
   // Para sumar otro conjunto: crear su tabla (ver supabase-tabla-opr.sql como
   // modelo) y agregar aquí una línea. Los PDF de todas las fuentes viven en el
   // mismo bucket 'documentos', así que el visor y el asistente no cambian.
   const FUENTES = [
-    { tabla:"documentos",     nombre:"Normativa base" },
+    { tabla:"documentos",     nombre:"Normas OTI" },
     { tabla:"normativos_opr", nombre:"Normativos OPR" }
   ];
-  const COL_BASE = "Normativa base";   // coleccion de los documentos ya cargados
+  const COL_BASE = "Normas OTI";   // coleccion de los documentos ya cargados
   // grupo:"" = todas las fuentes  |  col:"" = todas las colecciones de la fuente activa
-  const state = { q:"", tipo:"", ent:"", year:"", grupo:"", col:"", active:null };
+  const state = { q:"", tipo:"", ent:"", year:"", grupo:"", col:"", fecha:"", active:null, abiertas:new Set() };
 
   // ---------- Arranque ----------
   function boot(){
     const configured = (typeof SUPABASE_URL !== 'undefined' && SUPABASE_URL) && (typeof SUPABASE_ANON_KEY !== 'undefined' && SUPABASE_ANON_KEY);
     if(!configured || !window.supabase){ show('setupScreen'); return; }
     sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    sb.auth.getSession().then(({data})=>{ data.session ? enterApp(data.session) : show('loginScreen'); });
-    sb.auth.onAuthStateChange((_e,session)=>{ session ? enterApp(session) : show('loginScreen'); });
+    // OJO: dentro del callback de onAuthStateChange NO se puede consultar a
+    // Supabase. La libreria mantiene un cerrojo interno mientras ese callback
+    // corre, y cualquier consulta que necesite la sesion se queda esperando
+    // para siempre (el usuario se quedaba en "Ingresando..."). Con setTimeout
+    // el trabajo se hace ya fuera de ese contexto.
+    sb.auth.getSession().then(({data})=>{
+      setTimeout(()=> data.session ? entrar(data.session) : mostrarLogin(), 0);
+    });
+    sb.auth.onAuthStateChange((_e,session)=>{
+      setTimeout(()=> session ? entrar(session) : mostrarLogin(), 0);
+    });
   }
-  function show(id){ ['setupScreen','loginScreen','app'].forEach(x=>document.getElementById(x).hidden = (x!==id)); }
+  function show(id){ ['setupScreen','loginScreen','claveScreen','app'].forEach(x=>document.getElementById(x).hidden = (x!==id)); }
 
   // ---------- Login ----------
   document.getElementById('loginForm').addEventListener('submit', async e=>{
@@ -412,19 +682,140 @@
   document.getElementById('logoutBtn').onclick = async ()=>{ await sb.auth.signOut(); };
 
   // ---------- Entrar a la app ----------
+  const ROTULO_ROL = { admin:'Administrador', especialista:'Especialista', normas_oti:'Normas OTI' };
+
+  // Que conjunto ve cada perfil. Es solo para la interfaz: quien manda de verdad
+  // son las reglas RLS de la base (ver supabase-tres-perfiles.sql).
+  const ALCANCE = {
+    admin:        ['documentos','normativos_opr'],
+    especialista: ['normativos_opr'],
+    normas_oti:   ['documentos']
+  };
+
+  // El rol se compara normalizado (sin espacios, sin mayusculas, sin tildes) para
+  // que un 'Admin', ' admin ' o 'Administrador' guardado a mano no deje al
+  // usuario sin sus permisos. Devuelve 'admin', 'especialista' o null si no se
+  // reconoce: en ese caso la interfaz lo dice en vez de fingir un rol.
+  function normalizarRol(r){
+    const v = String(r||'').trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+    if(v === 'admin' || v === 'administrador') return 'admin';
+    if(v === 'especialista' || v === 'lector' || v === 'profesional') return 'especialista';
+    if(v === 'normas_oti' || v === 'normas oti' || v === 'oti') return 'normas_oti';
+    return null;
+  }
+
+  // getSession() y onAuthStateChange pueden dispararse casi a la vez: sin este
+  // cerrojo la app entraria dos veces y cargaria el inventario por duplicado.
+  let entrando = false;
+  async function entrar(session){
+    if(entrando) return;
+    entrando = true;
+    try { await enterApp(session); }
+    catch(e){ mostrarLogin('No se pudo abrir la sesion: ' + (e.message||e)); }
+    finally { entrando = false; }
+  }
+
+  // Banner visible cuando el perfil no se pudo leer: el rol mostrado no es fiable
+  function avisoPerfil(texto){
+    let el = document.getElementById('avisoPerfil');
+    if(!texto){ if(el) el.remove(); return; }
+    if(!el){
+      el = document.createElement('div');
+      el.id = 'avisoPerfil';
+      el.className = 'aviso-barra';
+      document.getElementById('app').insertBefore(el, document.getElementById('viewInv'));
+    }
+    el.innerHTML = `<b>No se pudo confirmar tu perfil.</b> ${esc(texto)} ` +
+      `La aplicacion te muestra los permisos minimos; lo que veas depende de las reglas de la base. ` +
+      `Avisa a la OTI: puede faltar la politica <code>perfil_propio_select</code> en la tabla profiles.`;
+  }
+
+  function mostrarLogin(aviso){
+    show('loginScreen');
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = false; btn.textContent = 'Ingresar';   // no dejarlo en "Ingresando..."
+    if(aviso) document.getElementById('loginMsg').innerHTML = `<div class="auth-msg err">${esc(aviso)}</div>`;
+  }
+
+  // El perfil decide rol y si toca cambiar la clave. Si la consulta no responde,
+  // NO se deja al usuario colgado: se entra con el perfil minimo. Los datos
+  // siguen protegidos por las reglas de la base, no por lo que diga el navegador.
+  async function leerPerfil(id){
+    const consulta = sb.from('profiles').select('role, debe_cambiar_clave').eq('id', id).single();
+    const limite = new Promise(res=> setTimeout(()=> res({ data:null, agotado:true }), 8000));
+    const r = await Promise.race([consulta, limite]);
+    if(r.agotado)   return { perfil:null, fallo:'La consulta del perfil no respondio a tiempo.' };
+    if(r.error)     return { perfil:null, fallo:'No se pudo leer el perfil: ' + r.error.message };
+    if(!r.data)     return { perfil:null, fallo:'Tu cuenta no tiene perfil en la tabla profiles.' };
+    return { perfil:r.data, fallo:null };
+  }
+
   async function enterApp(session){
     currentUser = session.user;
     document.getElementById('userEmail').textContent = currentUser.email;
+
+    const { perfil: prof, fallo } = await leerPerfil(currentUser.id);
+
+    // Primer ingreso con la clave que dio el administrador: no se entra sin cambiarla
+    if(prof && prof.debe_cambiar_clave){ show('claveScreen'); return; }
+
     show('app');
-    // rol
-    const { data: prof } = await sb.from('profiles').select('role').eq('id', currentUser.id).single();
-    isAdmin = prof && prof.role === 'admin';
-    document.getElementById('roleTag').textContent = isAdmin ? 'admin' : 'lector';
+    const rol = prof ? normalizarRol(prof.role) : null;
+    ROL = rol;
+    isAdmin = rol === 'admin';
+
+    // Sin perfil legible NO se finge un rol: se avisa. Antes se mostraba
+    // "Especialista" en silencio y parecia un problema de permisos cuando en
+    // realidad la consulta habia fallado.
+    const chip = document.getElementById('roleTag');
+    chip.textContent = rol ? ROTULO_ROL[rol] : (prof ? 'rol no valido' : 'sin perfil');
+    chip.classList.toggle('alerta', !rol);
+    chip.title = prof ? ('Valor guardado en profiles.role: ' + JSON.stringify(prof.role)) : '';
+
+    if(!prof)      avisoPerfil(fallo);
+    else if(!rol)  avisoPerfil('Tu perfil tiene el rol ' + JSON.stringify(prof.role) +
+                     ', que no es ninguno de los dos validos (admin / especialista).');
+    else           avisoPerfil(null);
     document.getElementById('navNew').hidden = !isAdmin;
+    document.getElementById('navUsr').hidden = !isAdmin;
     document.getElementById('adminForm').hidden = !isAdmin;
     document.getElementById('noAdmin').hidden = isAdmin;
+    showView('inv');
     await loadDocs();
   }
+
+  // ---------- Cambio de clave obligatorio ----------
+  document.getElementById('claveSalir').onclick = async e =>{ e.preventDefault(); await sb.auth.signOut(); };
+
+  // Tras cambiar la clave se vuelve a entrar; el cerrojo debe estar libre
+  function reentrar(session){ entrando = false; return entrar(session); }
+
+  document.getElementById('claveForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const btn = document.getElementById('claveBtn'), msg = document.getElementById('claveMsg');
+    const c1 = document.getElementById('clave1').value, c2 = document.getElementById('clave2').value;
+    msg.innerHTML = '';
+    if(c1 !== c2){ msg.innerHTML = `<div class="auth-msg err">Las dos contraseñas no coinciden.</div>`; return; }
+    if(c1.length < 8){ msg.innerHTML = `<div class="auth-msg err">Debe tener al menos 8 caracteres.</div>`; return; }
+    btn.disabled = true; btn.textContent = 'Guardando…';
+
+    const { error } = await sb.auth.updateUser({ password: c1 });
+    if(error){
+      msg.innerHTML = `<div class="auth-msg err">${esc(error.message)}</div>`;
+      btn.disabled = false; btn.textContent = 'Guardar y entrar'; return;
+    }
+    // Recien despues de cambiarla se levanta la marca
+    const { error: errPerfil } = await sb.from('profiles')
+      .update({ debe_cambiar_clave:false }).eq('id', currentUser.id);
+    if(errPerfil){
+      msg.innerHTML = `<div class="auth-msg err">Clave cambiada, pero no se pudo registrar: ${esc(errPerfil.message)}</div>`;
+      btn.disabled = false; btn.textContent = 'Guardar y entrar'; return;
+    }
+    document.getElementById('clave1').value = ''; document.getElementById('clave2').value = '';
+    btn.disabled = false; btn.textContent = 'Guardar y entrar';
+    const { data } = await sb.auth.getSession();
+    if(data.session) await reentrar(data.session);
+  });
 
   // ---------- Cargar documentos desde todas las fuentes ----------
   // Una tabla que todavia no existe no rompe la app: se omite esa fuente.
@@ -434,7 +825,11 @@
     const pane = document.getElementById('listPane');
     pane.innerHTML = `<div class="empty">Cargando documentos…</div>`;
 
-    const res = await Promise.all(FUENTES.map(f =>
+    // Se consultan solo las tablas que corresponden al perfil: ahorra una
+    // peticion que la base rechazaria igual. El limite real lo pone el RLS.
+    const permitidas = ALCANCE[ROL] || [];
+    const fuentes = FUENTES.filter(f => permitidas.includes(f.tabla));
+    const res = await Promise.all(fuentes.map(f =>
       sb.from(f.tabla).select('*').then(r => ({ f, ...r }))
     ));
 
@@ -445,9 +840,10 @@
         if(!noExiste(r.error)) fallos.push(`${r.f.nombre}: ${r.error.message}`);
         continue;   // tabla inexistente = fuente aun no creada
       }
+      if(!(r.data || []).length) continue;   // sin filas visibles: no se ofrece la pestaña
       GRUPOS.push(r.f.nombre);
       // La columna 'coleccion' puede existir en una tabla y no en otra
-      COL_OK[r.f.tabla] = (r.data||[]).length > 0 && Object.prototype.hasOwnProperty.call(r.data[0], 'coleccion');
+      COL_OK[r.f.tabla] = Object.prototype.hasOwnProperty.call(r.data[0], 'coleccion');
       // id se repite entre tablas: la clave de seleccion es tabla + id
       for(const d of (r.data || [])){
         INVENTARIO.push({ ...d, _tabla:r.f.tabla, _grupo:r.f.nombre, _key:`${r.f.tabla}:${d.id}` });
@@ -459,6 +855,7 @@
     }
     if(fallos.length) console.warn('Fuentes con error:', fallos.join(' | '));
 
+    indexarCarpetas();
     buildFuenteSelect(); buildColTabs(); buildColList(); buildFilters(); render();
   }
 
@@ -500,6 +897,12 @@
     document.getElementById('campoFuente').hidden = disponibles.length < 2;
     el.onchange = sincronizarCampoCol;
     sincronizarCampoCol();
+
+    // Mismo destino para la carga masiva
+    const em = document.getElementById('mFuente');
+    if(em) em.innerHTML = disponibles.map(f=>`<option value="${esc(f.tabla)}">${esc(f.nombre)}</option>`).join('');
+    const tv = document.getElementById('tiposValidos');
+    if(tv) tv.textContent = 'Uno de: ' + ORDEN.join(', ') + '.';
   }
   // Solo se ofrece Coleccion si la tabla destino tiene esa columna
   function sincronizarCampoCol(){
@@ -535,17 +938,62 @@
     if(clave && !sigueDisponible) state[clave] = "";
   }
 
+  // Compara sin distinguir tildes ni mayusculas
+  const sinAcentos = t => String(t).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+
   function filtered(){
-    const q = state.q.toLowerCase();
+    const q = sinAcentos(state.q.trim());
     return INVENTARIO.filter(d=>{
       if(state.grupo && d._grupo!==state.grupo) return false;
       if(state.col && d.coleccion!==state.col) return false;
       if(state.tipo && d.tipo!==state.tipo) return false;
       if(state.ent && d.entidad!==state.ent) return false;
       if(state.year && String(d.anio)!==state.year) return false;
-      if(q){ const hay=(d.titulo+" "+d.tipo+" "+d.entidad+" "+(d.anio||"")+" "+(d.original||"")+" "+(d.coleccion||"")).toLowerCase(); if(!hay.includes(q)) return false; }
+      if(state.fecha && d.fecha !== state.fecha) return false;
+      // Coincidencia inmediata con cualquier fragmento: incluye el numero de norma
+      // (carpeta) y la parte, e ignora acentos para que 'resolucion' encuentre
+      // 'Resolución' y al reves.
+      if(q){
+        const hay = sinAcentos([d.titulo, d.tipo, d.entidad, d.anio, d.original,
+                                d.coleccion, d.carpeta, d.parte].filter(Boolean).join(" "));
+        if(!hay.includes(q)) return false;
+      }
       return true;
     });
+  }
+
+  // Una norma puede constar de varios PDF que se complementan (resolucion,
+  // documento, anexo, expediente). Se agrupan por 'carpeta' y se anidan.
+  function indexarCarpetas(){
+    CARPETAS = new Map();
+    INVENTARIO.forEach(d=>{
+      if(!d.carpeta) return;
+      if(!CARPETAS.has(d.carpeta)) CARPETAS.set(d.carpeta, []);
+      CARPETAS.get(d.carpeta).push(d);
+    });
+  }
+  // Solo se anida si la norma tiene MAS de un documento
+  const esAnidable = d => d.carpeta && (CARPETAS.get(d.carpeta)||[]).length > 1;
+
+  const ORDEN_PARTE = ['Resolucion','Documento','Anexo','Expediente'];
+  const ordenarPartes = arr => arr.slice().sort((a,b)=>{
+    const x=ORDEN_PARTE.indexOf(a.parte), y=ORDEN_PARTE.indexOf(b.parte);
+    return (x<0?9:x)-(y<0?9:y);
+  });
+  // El documento principal de una norma es su resolucion aprobatoria
+  const principal = docs => docs.find(d=>d.parte==='Resolucion') || ordenarPartes(docs)[0];
+
+  function alternarCarpeta(i){
+    const c = VISIBLES[i]; if(!c) return;
+    if(state.abiertas.has(c)) state.abiertas.delete(c); else state.abiertas.add(c);
+    render();
+  }
+  // Al pulsar la norma: se abre su resolucion en el visor y se despliegan los complementos
+  function abrirCarpeta(i){
+    const c = VISIBLES[i]; if(!c) return;
+    state.abiertas.add(c);
+    const p = principal(CARPETAS.get(c) || []);
+    if(p) select(p._key); else render();
   }
 
   function render(){
@@ -554,22 +1002,63 @@
     document.getElementById('countPill').textContent = `${items.length} de ${universo}`;
     const pane = document.getElementById('listPane');
     if(!items.length){ pane.innerHTML=`<div class="empty">Sin resultados.</div>`; return; }
+
+    const buscando = state.q.trim() !== "";
+    VISIBLES = [];
     const byTipo = {};
     items.forEach(d=>{ (byTipo[d.tipo]=byTipo[d.tipo]||[]).push(d); });
+
+    const filaDoc = (d, hijo) => {
+      const cls = TIPOCLS[d.tipo]||"--brand";
+      const meta = hijo
+        ? `<span class="pchip">${esc(d.parte||'Documento')}</span>${d.kb?`<span>${d.kb} KB</span>`:''}`
+        : `<span class="tchip" style="background:var(${cls})">${esc(d.tipo)}</span><span>${esc(d.entidad||'')}</span>${d.anio?`<span>· ${d.anio}</span>`:''}`;
+      return `<div class="row ${hijo?'hijo':''} ${state.active===d._key?'active':''}" onclick="select('${d._key}')">
+        <div class="doc-ico"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
+        <div class="row-main">
+          <div class="name" title="${esc(d.titulo)}">${esc(d.titulo)}</div>
+          <div class="meta">${meta}</div>
+        </div>
+        ${hijo?'':`<span class="badge ${stCls(d.estado)}">${esc(d.estado||'Vigente')}</span>`}
+      </div>`;
+    };
+
     let html="";
     Object.keys(byTipo).sort((a,b)=>{const x=ORDEN.indexOf(a),y=ORDEN.indexOf(b);return (x<0?99:x)-(y<0?99:y)}).forEach(tp=>{
-      const arr = byTipo[tp].sort((a,b)=>(b.anio||0)-(a.anio||0));
+      const arr = byTipo[tp];
       html += `<div class="group-head">${esc(tp)}<span>${arr.length}</span></div>`;
+
+      const grupos = new Map(), sueltos = [];
       arr.forEach(d=>{
-        const cls = TIPOCLS[d.tipo]||"--brand";
-        html += `<div class="row ${state.active===d._key?'active':''}" onclick="select('${d._key}')">
-          <div class="doc-ico"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
+        if(esAnidable(d)){
+          if(!grupos.has(d.carpeta)) grupos.set(d.carpeta, []);
+          grupos.get(d.carpeta).push(d);
+        } else sueltos.push(d);
+      });
+
+      const entradas = [
+        ...[...grupos.entries()].map(([c,vis])=>({ carpeta:c, vis, anio:Math.max(...vis.map(d=>d.anio||0)) })),
+        ...sueltos.map(d=>({ doc:d, anio:d.anio||0 }))
+      ].sort((a,b)=> b.anio - a.anio);
+
+      entradas.forEach(e=>{
+        if(e.doc){ html += filaDoc(e.doc, false); return; }
+        const todos = CARPETAS.get(e.carpeta) || [];
+        const abierta = state.abiertas.has(e.carpeta) || buscando;
+        const i = VISIBLES.push(e.carpeta) - 1;
+        const cab = principal(e.vis) || e.vis[0];
+        const cls = TIPOCLS[cab.tipo]||"--brand";
+        const parcial = e.vis.length < todos.length;
+        const cuenta = parcial ? `${e.vis.length} de ${todos.length}` : `${todos.length}`;
+        html += `<div class="row norma ${abierta?'abierta':''}" onclick="abrirCarpeta(${i})">
+          <button class="chev" onclick="event.stopPropagation();alternarCarpeta(${i})" aria-label="${abierta?'Plegar':'Desplegar'}">${abierta?'▾':'▸'}</button>
           <div class="row-main">
-            <div class="name" title="${esc(d.titulo)}">${esc(d.titulo)}</div>
-            <div class="meta"><span class="tchip" style="background:var(${cls})">${esc(d.tipo)}</span><span>${esc(d.entidad||'')}</span>${d.anio?`<span>· ${d.anio}</span>`:''}</div>
+            <div class="name" title="${esc(e.carpeta)}">${esc(e.carpeta)}</div>
+            <div class="meta"><span class="tchip" style="background:var(${cls})">${esc(cab.tipo)}</span><span>${esc(cab.entidad||'')}</span>${cab.anio?`<span>· ${cab.anio}</span>`:''}<span class="nchip">${cuenta} documentos</span></div>
           </div>
-          <span class="badge ${stCls(d.estado)}">${esc(d.estado||'Vigente')}</span>
+          <span class="badge ${stCls(cab.estado)}">${esc(cab.estado||'Vigente')}</span>
         </div>`;
+        if(abierta) ordenarPartes(e.vis).forEach(d=>{ html += filaDoc(d, true); });
       });
     });
     pane.innerHTML = html;
@@ -582,14 +1071,9 @@
     document.getElementById('docEmpty').hidden = true;
     const head = document.getElementById('docHead');
     head.hidden = false;
-    head.innerHTML = `
-      <div class="sub">${esc(d.tipo)} · ${esc(d.entidad||'')}${d.anio?` · ${d.anio}`:''}${GRUPOS.length>1?` · ${esc(d._grupo)}`:''}${d.coleccion&&d.coleccion!==d._grupo?` · ${esc(d.coleccion)}`:''}</div>
-      <h2>${esc(d.titulo)}</h2>
-      <div class="metas">
-        <span class="badge ${stCls(d.estado)}">${esc(d.estado||'Vigente')}</span>
-        ${d.kb?`<span>· ${d.kb} KB</span>`:''}
-      </div>
-      <div class="doc-actions" id="docActions"><span style="font-size:.8rem;color:var(--ink-faint)">Generando enlace…</span></div>`;
+    // Solo las acciones: el titulo y los datos ya estan en la lista de la izquierda,
+    // y quitarlos deja mas alto para el visor.
+    head.innerHTML = `<div class="doc-actions" id="docActions"><span style="font-size:.8rem;color:var(--ink-faint)">Generando enlace…</span></div>`;
     document.getElementById('pdfWrap').hidden = true;
 
     // Enlace firmado temporal (bucket privado)
@@ -597,7 +1081,8 @@
     const acts = document.getElementById('docActions');
     if(error || !data){ acts.innerHTML = `<span style="font-size:.8rem;color:var(--stop)">No se pudo abrir el archivo: ${esc(error?error.message:'sin URL')}</span>`; return; }
     const url = data.signedUrl;
-    document.getElementById('pdfFrame').src = url + (url.includes('#')?'':'#') + 'navpanes=0&pagemode=none&view=FitH';
+    // zoom=100: tamaño real del documento (antes 'view=FitH', que lo ajustaba al ancho)
+    document.getElementById('pdfFrame').src = url + (url.includes('#')?'':'#') + 'navpanes=0&pagemode=none&zoom=100';
     document.getElementById('pdfWrap').hidden = false;
     acts.innerHTML = `
       <a class="btn" href="${url}" download="${esc(d.original||d.titulo)}.pdf">
@@ -606,13 +1091,400 @@
       <a class="btn ghost" href="${url}" target="_blank" rel="noopener">Abrir en pestaña</a>`;
   }
 
+  // ---------- Módulo de usuarios (solo administradores) ----------
+  // Toda operacion pasa por la Edge Function 'admin-usuarios': crear y eliminar
+  // cuentas exige la clave service_role, que jamas puede estar en el navegador.
+  let USUARIOS = [];
+
+  async function admUsuarios(cuerpo){
+    const { data, error } = await sb.functions.invoke('admin-usuarios', { body: cuerpo });
+    if(error){
+      let detalle = error.message || 'error desconocido';
+      try { const r = await error.context?.json?.(); if(r && r.error) detalle = r.error; } catch(_) {}
+      if(/Failed to send|not found|404/i.test(detalle))
+        detalle = 'La funcion admin-usuarios no esta desplegada en Supabase (ver LEEME.md).';
+      throw new Error(detalle);
+    }
+    if(data && data.error) throw new Error(data.error);
+    return data;
+  }
+
+  const fechaCorta = t => t ? new Date(t).toLocaleDateString('es-PE',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+
+  async function cargarUsuarios(){
+    const cuerpo = document.getElementById('usrCuerpo');
+    const resumen = document.getElementById('usrResumen');
+    cuerpo.innerHTML = `<tr><td colspan="4" class="sec">Cargando…</td></tr>`;
+    try {
+      const r = await admUsuarios({ accion:'listar' });
+      USUARIOS = r.usuarios || [];
+      const porRol = {admin:0, especialista:0, normas_oti:0};
+      USUARIOS.forEach(u=>{ const r = normalizarRol(u.role); if(r) porRol[r]++; });
+      resumen.textContent = `${USUARIOS.length} cuenta(s): ${porRol.admin} de Administrador, ` +
+        `${porRol.especialista} de Especialista y ${porRol.normas_oti} de Normas OTI.`;
+      pintarUsuarios();
+    } catch(e){
+      USUARIOS = [];
+      resumen.textContent = '';
+      cuerpo.innerHTML = `<tr><td colspan="4"><div class="form-msg err">${esc(e.message)}</div></td></tr>`;
+    }
+  }
+
+  function pintarUsuarios(){
+    const cuerpo = document.getElementById('usrCuerpo');
+    if(!USUARIOS.length){ cuerpo.innerHTML = `<tr><td colspan="4" class="sec">Sin cuentas.</td></tr>`; return; }
+    cuerpo.innerHTML = USUARIOS.map((u,i)=>`
+      <tr>
+        <td>
+          <div class="correo">${esc(u.email||'')}${u.soy_yo?' <span class="sec">(tú)</span>':''}</div>
+          <div class="sec">${esc(u.nombre||'')}${u.nombre?' · ':''}alta ${fechaCorta(u.created_at)}</div>
+        </td>
+        <td>
+          <select onchange="cambiarRol(${i}, this.value)" ${u.soy_yo?'disabled title="No puedes cambiar tu propio perfil"':''}>
+            ${['especialista','normas_oti','admin'].map(r=>
+              `<option value="${r}" ${normalizarRol(u.role)===r?'selected':''}>${ROTULO_ROL[r]}</option>`).join('')}
+          </select>
+          ${u.debe_cambiar_clave?'<div style="margin-top:5px"><span class="etq pend">clave sin estrenar</span></div>':''}
+        </td>
+        <td class="ocultable sec">${fechaCorta(u.ultimo_acceso)}</td>
+        <td>
+          <div class="usr-acc">
+            <button class="btn-mini" onclick="resetearClave(${i})">Restablecer clave</button>
+            <button class="btn-mini peligro" onclick="eliminarUsuario(${i})" ${u.soy_yo?'disabled title="No puedes eliminar tu propia cuenta"':''}>Eliminar</button>
+          </div>
+        </td>
+      </tr>`).join('');
+  }
+
+  const avisoUsr = (texto, ok) => {
+    const el = document.getElementById('usrMsg');
+    el.className = ok ? 'form-msg ok' : 'form-msg err';
+    el.textContent = texto;
+    if(ok) setTimeout(()=>{ el.textContent=''; el.className=''; }, 5000);
+  };
+
+  async function cambiarRol(i, rol){
+    const u = USUARIOS[i]; if(!u) return;
+    if(!confirm(`¿Cambiar el perfil de ${u.email} a ${ROTULO_ROL[rol]}?`)){ pintarUsuarios(); return; }
+    try { await admUsuarios({ accion:'cambiar_rol', id:u.id, rol });
+      avisoUsr(`Perfil de ${u.email} actualizado a ${ROTULO_ROL[rol]}.`, true); await cargarUsuarios();
+    } catch(e){ avisoUsr(e.message, false); pintarUsuarios(); }
+  }
+
+  async function eliminarUsuario(i){
+    const u = USUARIOS[i]; if(!u) return;
+    if(!confirm(`¿Eliminar definitivamente la cuenta ${u.email}?
+
+Perderá el acceso de inmediato. Esta acción no se puede deshacer.`)) return;
+    try { await admUsuarios({ accion:'eliminar', id:u.id });
+      avisoUsr(`Cuenta ${u.email} eliminada.`, true); await cargarUsuarios();
+    } catch(e){ avisoUsr(e.message, false); }
+  }
+
+  async function resetearClave(i){
+    const u = USUARIOS[i]; if(!u) return;
+    const nueva = prompt(`Nueva clave temporal para ${u.email}
+
+Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
+    if(nueva === null) return;
+    if(nueva.trim().length < 8){ avisoUsr('La clave debe tener al menos 8 caracteres.', false); return; }
+    try { await admUsuarios({ accion:'resetear_clave', id:u.id, clave:nueva.trim() });
+      avisoUsr(`Clave de ${u.email} restablecida. Comunícasela por un medio seguro.`, true); await cargarUsuarios();
+    } catch(e){ avisoUsr(e.message, false); }
+  }
+
+  // Clave temporal legible, sin caracteres que se confundan al dictarla
+  function sugerirClave(){
+    const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ', num = '23456789', min = 'abcdefghijkmnpqrstuvwxyz';
+    const al = s => s[Math.floor(Math.random()*s.length)];
+    let c = al(abc);
+    for(let i=0;i<6;i++) c += al(min);
+    c += al(num) + al(num) + '-' + al(abc) + al(min) + al(num);
+    return c;
+  }
+  document.getElementById('generarClave').onclick = ()=>{
+    document.getElementById('nClave').value = sugerirClave();
+  };
+
+  document.getElementById('crearUsrForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const btn = document.getElementById('crearUsrBtn'), msg = document.getElementById('crearUsrMsg');
+    const correo = document.getElementById('nCorreo').value.trim();
+    const clave  = document.getElementById('nClave').value.trim();
+    const rol    = document.getElementById('nRol').value;
+    msg.className=''; msg.textContent='';
+    if(clave.length < 8){ msg.className='form-msg err'; msg.textContent='La clave inicial debe tener al menos 8 caracteres.'; return; }
+    btn.disabled = true; btn.textContent = 'Creando…';
+    try {
+      await admUsuarios({ accion:'crear', email:correo, nombre:document.getElementById('nNombre').value.trim(), clave, rol });
+      msg.className='form-msg ok';
+      msg.textContent = `Cuenta ${correo} creada como ${ROTULO_ROL[rol]}. Entrégale la clave por un medio seguro: se le pedirá cambiarla al entrar.`;
+      e.target.reset();
+      await cargarUsuarios();
+    } catch(err){
+      msg.className='form-msg err'; msg.textContent = err.message;
+    }
+    btn.disabled = false; btn.textContent = 'Crear cuenta';
+  });
+
+  // ---------- Carga masiva ----------
+  //  El formato NO es una sugerencia: se valida entero y, mientras haya un solo
+  //  error, el boton de subir sigue deshabilitado. Asi no entran a la base
+  //  documentos a medias ni PDF huerfanos.
+  const COLUMNAS = ['archivo','titulo','tipo','entidad','anio','estado','fecha','carpeta','parte'];
+  const ESTADOS  = ['Vigente','Modificada','Derogada'];
+  const PARTES   = ['Resolucion','Documento','Anexo','Expediente'];
+  let MASIVA = { filas: [], pdfs: new Map(), listo: false };
+
+  // Excel guarda en la codificacion de Windows; si no es UTF-8 valido se reintenta.
+  async function leerTexto(file){
+    const buf = await file.arrayBuffer();
+    try { return new TextDecoder('utf-8', { fatal:true }).decode(buf); }
+    catch(_){ return new TextDecoder('windows-1252').decode(buf); }
+  }
+
+  // CSV con comillas dobles y separador ; o ,
+  function partirCsv(texto){
+    const limpio = texto.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
+    const cab = limpio.split('\n')[0] || '';
+    const sep = (cab.split(';').length > cab.split(',').length) ? ';' : ',';
+    const filas = []; let campo = '', fila = [], comillas = false;
+    for(let i=0;i<limpio.length;i++){
+      const c = limpio[i];
+      if(comillas){
+        if(c === '"'){ if(limpio[i+1] === '"'){ campo += '"'; i++; } else comillas = false; }
+        else campo += c;
+      } else if(c === '"'){ comillas = true; }
+      else if(c === sep){ fila.push(campo); campo = ''; }
+      else if(c === '\n'){ fila.push(campo); filas.push(fila); fila = []; campo = ''; }
+      else campo += c;
+    }
+    if(campo !== '' || fila.length){ fila.push(campo); filas.push(fila); }
+    return filas.map(f => f.map(x => x.trim()));
+  }
+
+  function plantillaCsv(){
+    const ej1 = ['DIRECTIVA-001-2026.pdf','Directiva General N 001-2026 sobre gestion documental','Directiva','SERFOR','2026','Vigente','2026-03-14','',''];
+    const ej2 = ['RES-045-2026.pdf','Aprueban los Lineamientos de fiscalizacion','Lineamientos','SERFOR','2026','Vigente','2026-05-02','RDE N 045-2026-MIDAGRI-SERFOR-DE','Resolucion'];
+    const ej3 = ['LIN-045-2026.pdf','Lineamientos de fiscalizacion','Lineamientos','SERFOR','2026','Vigente','2026-05-02','RDE N 045-2026-MIDAGRI-SERFOR-DE','Documento'];
+    const lineas = [
+      COLUMNAS.join(';'),
+      '# Las lineas que empiezan por # son ejemplos y NO se cargan. Borralas o dejalas.',
+      '# ' + ej1.join(';'),
+      '# ' + ej2.join(';'),
+      '# ' + ej3.join(';')
+    ];
+    // BOM para que Excel respete las tildes
+    return '\uFEFF' + lineas.join('\r\n') + '\r\n';
+  }
+
+  // ---------- Ventana emergente con el formato ----------
+  //  El contenido vive una sola vez en el HTML (#bloqueFormato, oculto) y se
+  //  traslada a la ventana la primera vez que se abre. Asi no hay dos copias
+  //  del mismo texto que puedan quedar desincronizadas.
+  let devolverFormato = null;
+  function abrirFormato(){
+    const bloque = document.getElementById('bloqueFormato');
+    const cuerpo = document.getElementById('modalFormatoCuerpo');
+    if(bloque && bloque.parentElement !== cuerpo){
+      devolverFormato = bloque.parentElement;
+      cuerpo.appendChild(bloque);
+    }
+    bloque.hidden = false;
+    document.getElementById('modalFormato').hidden = false;
+    document.getElementById('modalFormatoX').focus();
+  }
+  function cerrarFormato(){
+    document.getElementById('modalFormato').hidden = true;
+    document.getElementById('verFormato').focus();
+  }
+  document.getElementById('verFormato').onclick = e =>{ e.preventDefault(); abrirFormato(); };
+  document.getElementById('modalFormatoX').onclick = cerrarFormato;
+  document.getElementById('modalCerrar').onclick = cerrarFormato;
+  // Pulsar el fondo cierra; pulsar la tarjeta, no
+  document.getElementById('modalFormato').addEventListener('click', e =>{
+    if(e.target.id === 'modalFormato') cerrarFormato();
+  });
+  document.addEventListener('keydown', e =>{
+    if(e.key === 'Escape' && !document.getElementById('modalFormato').hidden) cerrarFormato();
+  });
+
+  document.getElementById('mPlantilla').onclick = ()=>{
+    const url = URL.createObjectURL(new Blob([plantillaCsv()], { type:'text/csv;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = 'plantilla-carga-masiva.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  };
+
+  function informe(clase, titulo, puntos){
+    const el = document.getElementById('mInforme');
+    el.className = 'informe ' + clase;
+    el.innerHTML = `<div class="informe-cab">${esc(titulo)}</div>` +
+      (puntos && puntos.length ? `<ul>${puntos.map(t=>`<li>${t}</li>`).join('')}</ul>` : '');
+  }
+
+  async function validarMasiva(){
+    const btn = document.getElementById('mSubir');
+    MASIVA = { filas: [], pdfs: new Map(), listo: false };
+    btn.disabled = true; btn.textContent = 'Subir documentos';
+
+    const fCsv  = document.getElementById('mCsv').files[0];
+    const fPdfs = [...document.getElementById('mPdfs').files];
+    if(!fCsv && !fPdfs.length){ document.getElementById('mInforme').className=''; document.getElementById('mInforme').innerHTML=''; return; }
+    if(!fCsv){  informe('mal','Falta la plantilla CSV.', []); return; }
+    if(!fPdfs.length){ informe('mal','Faltan los archivos PDF.', []); return; }
+
+    fPdfs.forEach(f => MASIVA.pdfs.set(f.name.toLowerCase(), f));
+
+    const filas = partirCsv(await leerTexto(fCsv));
+    const errores = [];
+    if(!filas.length){ informe('mal','La plantilla esta vacia.', []); return; }
+
+    // Cabecera: deben estar todas las columnas y con ese nombre
+    const cab = filas[0].map(c => c.toLowerCase());
+    const faltan = COLUMNAS.filter(c => !cab.includes(c));
+    if(faltan.length){
+      informe('mal','La cabecera no coincide con la plantilla.',
+        [`Faltan las columnas: <b>${esc(faltan.join(', '))}</b>.`,
+         'Descarga la plantilla de nuevo y no cambies la primera fila.']);
+      return;
+    }
+    const col = {}; COLUMNAS.forEach(c => col[c] = cab.indexOf(c));
+
+    const tiposOk = ORDEN.map(t=>t.toLowerCase());
+    const vistos = new Set();
+    const filasOk = [];
+
+    for(let i=1;i<filas.length;i++){
+      const f = filas[i];
+      if(!f.length || f.every(x => x === '')) continue;
+      if((f[0]||'').startsWith('#')) continue;               // linea de ejemplo
+      const n = i + 1;                                        // numero de fila en Excel
+      const v = c => (f[col[c]] || '').trim();
+      const err = m => errores.push(`Fila <b>${n}</b>: ${m}`);
+
+      const archivo = v('archivo'), titulo = v('titulo'), tipo = v('tipo');
+      if(!archivo){ err('falta <b>archivo</b>.'); continue; }
+      if(!titulo)  err('falta <b>titulo</b>.');
+      if(!tipo)    err('falta <b>tipo</b>.');
+      else if(!tiposOk.includes(tipo.toLowerCase())) err(`el tipo <b>${esc(tipo)}</b> no es valido.`);
+
+      const clave = archivo.toLowerCase();
+      if(vistos.has(clave)) err(`el archivo <b>${esc(archivo)}</b> esta repetido.`);
+      vistos.add(clave);
+
+      const pdf = MASIVA.pdfs.get(clave);
+      if(!pdf) err(`no seleccionaste el PDF <b>${esc(archivo)}</b>.`);
+      else if(pdf.size > 50*1024*1024) err(`<b>${esc(archivo)}</b> pesa ${(pdf.size/1048576).toFixed(1)} MB y el limite es 50 MB.`);
+
+      const anio = v('anio');
+      if(anio && !/^\d{4}$/.test(anio)) err(`el anio <b>${esc(anio)}</b> no tiene cuatro cifras.`);
+      else if(anio && (+anio < 1990 || +anio > 2100)) err(`el anio <b>${esc(anio)}</b> esta fuera de rango.`);
+
+      const estado = v('estado');
+      if(estado && !ESTADOS.some(e => e.toLowerCase() === estado.toLowerCase()))
+        err(`el estado <b>${esc(estado)}</b> no es valido.`);
+
+      const fecha = v('fecha');
+      if(fecha && !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) err(`la fecha <b>${esc(fecha)}</b> no tiene el formato AAAA-MM-DD.`);
+
+      const parte = v('parte'), carpeta = v('carpeta');
+      if(parte && !PARTES.some(x => x.toLowerCase() === parte.toLowerCase()))
+        err(`la parte <b>${esc(parte)}</b> no es valida.`);
+      if(parte && !carpeta) err('si indicas <b>parte</b> tienes que indicar <b>carpeta</b>.');
+
+      filasOk.push({ archivo, titulo, tipo, entidad:v('entidad')||null,
+                     anio: anio ? +anio : null,
+                     estado: estado || 'Vigente',
+                     fecha: fecha || null,
+                     carpeta: carpeta || null, parte: parte || null, pdf });
+    }
+
+    // PDF seleccionados que ninguna fila menciona
+    const mencionados = new Set(filasOk.map(r => r.archivo.toLowerCase()));
+    [...MASIVA.pdfs.keys()].forEach(k => {
+      if(!mencionados.has(k)) errores.push(`El PDF <b>${esc(MASIVA.pdfs.get(k).name)}</b> no aparece en ninguna fila.`);
+    });
+
+    if(!filasOk.length && !errores.length) errores.push('La plantilla no tiene ninguna fila con datos.');
+
+    if(errores.length){
+      informe('mal', `No se puede cargar: ${errores.length} problema(s) por corregir.`, errores.slice(0,40)
+        .concat(errores.length>40 ? [`… y ${errores.length-40} mas.`] : []));
+      return;
+    }
+
+    MASIVA.filas = filasOk; MASIVA.listo = true;
+    const normas = new Set(filasOk.filter(r=>r.carpeta).map(r=>r.carpeta));
+    informe('ok', `Todo correcto: ${filasOk.length} documento(s) listos para subir.`,
+      normas.size ? [`Se agruparan en <b>${normas.size}</b> norma(s) con varios documentos.`] : []);
+    btn.disabled = false;
+    btn.textContent = `Subir ${filasOk.length} documento(s)`;
+  }
+
+  document.getElementById('modalPlantilla').onclick = ()=> document.getElementById('mPlantilla').click();
+
+  document.getElementById('mCsv').onchange  = validarMasiva;
+  document.getElementById('mPdfs').onchange = validarMasiva;
+  document.getElementById('mLimpiar').onclick = ()=>{
+    setTimeout(()=>{ MASIVA = { filas:[], pdfs:new Map(), listo:false };
+      document.getElementById('mInforme').className=''; document.getElementById('mInforme').innerHTML='';
+      const b=document.getElementById('mSubir'); b.disabled=true; b.textContent='Subir documentos'; }, 0);
+  };
+
+  document.getElementById('masivaForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    if(!isAdmin || !MASIVA.listo) return;
+    const btn = document.getElementById('mSubir');
+    const tabla = document.getElementById('mFuente').value;
+    const nombreFuente = (FUENTES.find(f=>f.tabla===tabla)||{}).nombre || COL_BASE;
+    // El prefijo decide quien puede leer el archivo (ver supabase-tres-perfiles.sql)
+    const prefijo = tabla === 'normativos_opr' ? 'opr_' : '';
+
+    btn.disabled = true;
+    const fallos = [];
+    let hechos = 0;
+    for(const r of MASIVA.filas){
+      btn.textContent = `Subiendo ${hechos+1} de ${MASIVA.filas.length}…`;
+      const ruta = `${prefijo}${slug(r.titulo)}_${Date.now()}_${hechos}.pdf`;
+      try {
+        const up = await sb.storage.from('documentos').upload(ruta, r.pdf, { contentType:'application/pdf', upsert:false });
+        if(up.error) throw new Error(up.error.message);
+        const fila = { tipo:r.tipo, titulo:r.titulo, entidad:r.entidad, anio:r.anio,
+                       estado:r.estado, fecha:r.fecha, kb:Math.round(r.pdf.size/1024),
+                       archivo:ruta, original:r.archivo, created_by:currentUser.id };
+        if(COL_OK[tabla]) fila.coleccion = nombreFuente;
+        if(r.carpeta) fila.carpeta = r.carpeta;
+        if(r.parte)   fila.parte   = r.parte;
+        const ins = await sb.from(tabla).insert(fila);
+        if(ins.error){
+          await sb.storage.from('documentos').remove([ruta]);   // no dejar archivo huerfano
+          throw new Error(ins.error.message);
+        }
+        hechos++;
+      } catch(err){
+        fallos.push(`<b>${esc(r.archivo)}</b>: ${esc(err.message)}`);
+      }
+    }
+
+    if(fallos.length) informe('mal', `Subidos ${hechos} de ${MASIVA.filas.length}. Fallaron ${fallos.length}:`, fallos);
+    else informe('ok', `Listo: ${hechos} documento(s) incorporados a ${nombreFuente}.`, []);
+
+    btn.textContent = 'Subir documentos'; btn.disabled = true;
+    MASIVA.listo = false;
+    document.getElementById('masivaForm').reset();
+    await loadDocs();
+  });
+
   // ---------- Navegación entre vistas ----------
   function showView(v){
-    const inv = v==='inv';
-    document.getElementById('viewInv').hidden = !inv;
-    document.getElementById('viewNew').hidden = inv;
-    document.getElementById('navInv').classList.toggle('on', inv);
-    document.getElementById('navNew').classList.toggle('on', !inv);
+    if((v==='new' || v==='usr') && !isAdmin) v = 'inv';   // solo administradores
+    const vistas = { inv:'viewInv', new:'viewNew', usr:'viewUsr' };
+    const navs   = { inv:'navInv',  new:'navNew',  usr:'navUsr'  };
+    Object.entries(vistas).forEach(([k,id])=> document.getElementById(id).hidden = (k!==v));
+    Object.entries(navs).forEach(([k,id])=> document.getElementById(id).classList.toggle('on', k===v));
+    if(v==='usr') cargarUsuarios();
   }
 
   // ---------- Asistente IA flotante ----------
@@ -714,7 +1586,11 @@
     btn.disabled = true; btn.textContent = 'Subiendo…'; msg.className=''; msg.textContent='';
 
     const titulo = document.getElementById('uTitulo').value.trim();
-    const path = `${slug(titulo)}_${Date.now()}.pdf`;
+    const tablaDestino = document.getElementById('uFuente').value || (FUENTES[0] && FUENTES[0].tabla) || 'documentos';
+    // El prefijo no es cosmetico: la regla de storage lo usa para decidir quien
+    // puede leer el archivo (ver supabase-usuarios.sql).
+    const prefijo = tablaDestino === 'normativos_opr' ? 'opr_' : '';
+    const path = `${prefijo}${slug(titulo)}_${Date.now()}.pdf`;
 
     // 1) subir al Storage
     const up = await sb.storage.from('documentos').upload(path, file, { contentType:'application/pdf', upsert:false });
@@ -730,9 +1606,7 @@
       kb: Math.round(file.size/1024),
       archivo: path, original: file.name, created_by: currentUser.id
     };
-    // Tabla destino: la elegida, o la primera disponible si el selector esta oculto
-    const selFuente = document.getElementById('uFuente');
-    const tabla = selFuente.value || (FUENTES[0] && FUENTES[0].tabla) || 'documentos';
+    const tabla = tablaDestino;
     const nombreFuente = (FUENTES.find(f=>f.tabla===tabla)||{}).nombre || COL_BASE;
     if(COL_OK[tabla]) row.coleccion = document.getElementById('uCol').value.trim() || nombreFuente;
     const ins = await sb.from(tabla).insert(row);
@@ -757,6 +1631,15 @@
   };
   document.getElementById('q').oninput = e=>{ state.q=e.target.value; render(); };
   document.getElementById('fCol').onchange = e=>{ state.col=e.target.value; render(); };
+  document.getElementById('fFecha').onchange = e=>{
+    state.fecha = e.target.value;
+    document.getElementById('fFechaX').hidden = !state.fecha;
+    render();
+  };
+  document.getElementById('fFechaX').onclick = ()=>{
+    state.fecha = ""; document.getElementById('fFecha').value = "";
+    document.getElementById('fFechaX').hidden = true; render();
+  };
   document.getElementById('fTipo').onchange = e=>{ state.tipo=e.target.value; render(); };
   document.getElementById('fEnt').onchange  = e=>{ state.ent=e.target.value; render(); };
   document.getElementById('fYear').onchange = e=>{ state.year=e.target.value; render(); };
