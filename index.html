@@ -730,11 +730,56 @@
       `Avisa a la OTI: puede faltar la politica <code>perfil_propio_select</code> en la tabla profiles.`;
   }
 
+  // Borra todo rastro de la sesion anterior: ni datos en memoria ni nada en
+  // pantalla. Sin esto, al salir quedaba a la vista la lista del usuario que
+  // se acaba de ir, y su correo escrito en el formulario.
+  function limpiarSesion(){
+    currentUser = null; isAdmin = false; ROL = null;
+    INVENTARIO = []; GRUPOS = []; VISIBLES = []; USUARIOS = [];
+    CARPETAS = new Map();
+    Object.keys(COL_OK).forEach(k => delete COL_OK[k]);
+    Object.assign(state, { q:"", tipo:"", ent:"", year:"", grupo:"", col:"", fecha:"", active:null });
+    state.abiertas.clear();
+
+    ['q','fTipo','fEnt','fYear','fCol','fFecha'].forEach(id=>{
+      const el = document.getElementById(id); if(el) el.value = '';
+    });
+    const x = document.getElementById('fFechaX'); if(x) x.hidden = true;
+
+    const bar = document.getElementById('collTabs'); bar.hidden = true; bar.innerHTML = '';
+    document.getElementById('listPane').innerHTML = '';
+    document.getElementById('countPill').textContent = '';
+    document.getElementById('docHead').hidden = true;
+    document.getElementById('docHead').innerHTML = '';
+    document.getElementById('docEmpty').hidden = false;
+    const marco = document.getElementById('pdfFrame');
+    document.getElementById('pdfWrap').hidden = true; marco.removeAttribute('src');
+
+    document.getElementById('chatPanel').hidden = true;
+    document.getElementById('userEmail').textContent = '';
+    const chip = document.getElementById('roleTag');
+    chip.textContent = ''; chip.classList.remove('alerta'); chip.title = '';
+    avisoPerfil(null);
+
+    ['uploadForm','crearUsrForm','masivaForm'].forEach(id=>{
+      const f = document.getElementById(id); if(f) f.reset();
+    });
+    ['clave1','clave2'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    document.getElementById('claveMsg').innerHTML = '';
+    document.getElementById('formMsg').textContent = '';
+    document.getElementById('mInforme').className = '';
+    document.getElementById('mInforme').innerHTML = '';
+  }
+
   function mostrarLogin(aviso){
+    limpiarSesion();
     show('loginScreen');
     const btn = document.getElementById('loginBtn');
     btn.disabled = false; btn.textContent = 'Ingresar';   // no dejarlo en "Ingresando..."
-    if(aviso) document.getElementById('loginMsg').innerHTML = `<div class="auth-msg err">${esc(aviso)}</div>`;
+    document.getElementById('email').value = '';
+    document.getElementById('pass').value = '';
+    document.getElementById('loginMsg').innerHTML =
+      aviso ? `<div class="auth-msg err">${esc(aviso)}</div>` : '';
   }
 
   // El perfil decide rol y si toca cambiar la clave. Si la consulta no responde,
@@ -1166,8 +1211,17 @@
   async function cambiarRol(i, rol){
     const u = USUARIOS[i]; if(!u) return;
     if(!confirm(`¿Cambiar el perfil de ${u.email} a ${ROTULO_ROL[rol]}?`)){ pintarUsuarios(); return; }
-    try { await admUsuarios({ accion:'cambiar_rol', id:u.id, rol });
-      avisoUsr(`Perfil de ${u.email} actualizado a ${ROTULO_ROL[rol]}.`, true); await cargarUsuarios();
+    try {
+      await admUsuarios({ accion:'cambiar_rol', id:u.id, rol });
+      await cargarUsuarios();
+      const ahora = USUARIOS.find(x => x.id === u.id);
+      const rolReal = ahora ? normalizarRol(ahora.role) : null;
+      if(rolReal && rolReal !== rol){
+        avisoUsr(`No se aplicó: ${u.email} sigue como ${ROTULO_ROL[rolReal]}. ` +
+          `La función admin-usuarios desplegada no reconoce el perfil ${ROTULO_ROL[rol]}; vuelve a desplegarla.`, false);
+      } else {
+        avisoUsr(`Perfil de ${u.email} actualizado a ${ROTULO_ROL[rol]}.`, true);
+      }
     } catch(e){ avisoUsr(e.message, false); pintarUsuarios(); }
   }
 
@@ -1216,11 +1270,26 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
     if(clave.length < 8){ msg.className='form-msg err'; msg.textContent='La clave inicial debe tener al menos 8 caracteres.'; return; }
     btn.disabled = true; btn.textContent = 'Creando…';
     try {
-      await admUsuarios({ accion:'crear', email:correo, nombre:document.getElementById('nNombre').value.trim(), clave, rol });
-      msg.className='form-msg ok';
-      msg.textContent = `Cuenta ${correo} creada como ${ROTULO_ROL[rol]}. Entrégale la clave por un medio seguro: se le pedirá cambiarla al entrar.`;
+      const creada = await admUsuarios({ accion:'crear', email:correo, nombre:document.getElementById('nNombre').value.trim(), clave, rol });
       e.target.reset();
       await cargarUsuarios();
+
+      // No basta con que la funcion responda "ok": hay que comprobar que asigno
+      // EL rol pedido. Una version antigua de admin-usuarios descarta los roles
+      // que no conoce y los sustituye por Especialista sin avisar.
+      const alta = USUARIOS.find(u => (u.email||'').toLowerCase() === correo.toLowerCase());
+      const rolReal = alta ? normalizarRol(alta.role) : null;
+      if(rolReal && rolReal !== rol){
+        msg.className='form-msg err';
+        msg.innerHTML = `La cuenta <b>${esc(correo)}</b> se creó, pero quedó como ` +
+          `<b>${esc(ROTULO_ROL[rolReal])}</b> en lugar de <b>${esc(ROTULO_ROL[rol])}</b>.<br>` +
+          `La función <code>admin-usuarios</code> desplegada en Supabase es antigua y no ` +
+          `reconoce ese perfil. Vuelve a desplegarla (Edge Functions → admin-usuarios → Deploy) ` +
+          `y corrige el perfil de esta cuenta con el desplegable de la tabla.`;
+      } else {
+        msg.className='form-msg ok';
+        msg.textContent = `Cuenta ${correo} creada como ${ROTULO_ROL[rol]}. Entrégale la clave por un medio seguro: se le pedirá cambiarla al entrar.`;
+      }
     } catch(err){
       msg.className='form-msg err'; msg.textContent = err.message;
     }
