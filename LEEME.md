@@ -144,6 +144,9 @@ Como administrador, pestaña **Nuevos registros** → tarjeta *Carga masiva*.
 **El formato es obligatorio**: mientras el archivo no cumpla, el botón de subir
 permanece deshabilitado.
 
+El detalle del formato está en una **ventana emergente**: pulsa
+*Ver el formato requerido* dentro de la tarjeta.
+
 1. Pulsa **Descargar plantilla**. Es un CSV separado por punto y coma.
 2. Una fila por documento. Las líneas que empiezan por `#` son ejemplos y se ignoran.
 3. Guárdala como CSV y selecciónala junto con **todos** los PDF que menciona.

@@ -138,6 +138,17 @@
   .informe ul{margin:0;padding:10px 12px 12px 30px;max-height:230px;overflow-y:auto;background:var(--surface)}
   .informe li{margin-bottom:5px;color:var(--ink-soft)}
   .informe li b{color:var(--stop)}
+
+  /* Ventana emergente del formato */
+  .modal-fondo{position:fixed;inset:0;background:rgba(10,16,8,.55);display:grid;place-items:center;padding:20px;z-index:50}
+  .modal-fondo[hidden]{display:none}
+  .modal{background:var(--surface);border-radius:14px;box-shadow:0 24px 70px rgba(0,0,0,.4);width:100%;max-width:780px;max-height:88vh;display:flex;flex-direction:column}
+  .modal-cab{display:flex;align-items:center;gap:10px;padding:14px 20px;border-bottom:1px solid var(--line);flex:none}
+  .modal-cab h2{margin:0;font-size:1.02rem;flex:1}
+  .modal-cuerpo{padding:18px 20px;overflow-y:auto;min-height:0}
+  .modal-pie{padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:10px;flex-wrap:wrap;flex:none}
+  .modal-x{background:transparent;border:0;color:var(--ink-faint);font-size:1.1rem;cursor:pointer;padding:2px 6px;font-family:inherit;line-height:1}
+  .modal-x:hover{color:var(--stop)}
   .aviso-barra code{background:rgba(0,0,0,.08);padding:1px 5px;border-radius:4px;font-size:.92em}
   .role.alerta{background:var(--stop);color:#fff}
 
@@ -448,8 +459,10 @@
       <form class="form-card usr-card" id="masivaForm">
         <h2>Carga masiva</h2>
         <p class="hint">Para subir varios documentos de una vez hay que seguir el formato exacto.
-          No es opcional: si el archivo no cumple, la carga no se habilita.</p>
+          No es opcional: si el archivo no cumple, la carga no se habilita.
+          <a href="#" id="verFormato">Ver el formato requerido</a>.</p>
 
+        <div id="bloqueFormato" hidden>
         <ol class="pasos">
           <li>Descarga la plantilla y ábrela en Excel.</li>
           <li>Completa <b>una fila por documento</b>. Las líneas que empiezan por <code>#</code> son ejemplos: bórralas o déjalas, se ignoran.</li>
@@ -472,6 +485,7 @@
             <tr><td>parte</td><td>No</td><td>Resolucion, Documento, Anexo o Expediente. Exige <code>carpeta</code>.</td></tr>
           </tbody>
         </table>
+        </div>
 
         <div class="form-grid">
           <div class="field">
@@ -555,6 +569,22 @@
           </table>
         </div>
         <div id="usrMsg" style="margin-top:14px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ventana emergente: formato de la carga masiva -->
+  <div class="modal-fondo" id="modalFormato" hidden role="dialog" aria-modal="true" aria-labelledby="modalFormatoTit">
+    <div class="modal">
+      <div class="modal-cab">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--brand)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        <h2 id="modalFormatoTit">Formato para la carga masiva</h2>
+        <button class="modal-x" type="button" id="modalFormatoX" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="modal-cuerpo" id="modalFormatoCuerpo"></div>
+      <div class="modal-pie">
+        <button class="btn" type="button" id="modalPlantilla">Descargar plantilla</button>
+        <button class="btn ghost" type="button" id="modalCerrar">Cerrar</button>
       </div>
     </div>
   </div>
@@ -1248,6 +1278,37 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
     return '\uFEFF' + lineas.join('\r\n') + '\r\n';
   }
 
+  // ---------- Ventana emergente con el formato ----------
+  //  El contenido vive una sola vez en el HTML (#bloqueFormato, oculto) y se
+  //  traslada a la ventana la primera vez que se abre. Asi no hay dos copias
+  //  del mismo texto que puedan quedar desincronizadas.
+  let devolverFormato = null;
+  function abrirFormato(){
+    const bloque = document.getElementById('bloqueFormato');
+    const cuerpo = document.getElementById('modalFormatoCuerpo');
+    if(bloque && bloque.parentElement !== cuerpo){
+      devolverFormato = bloque.parentElement;
+      cuerpo.appendChild(bloque);
+    }
+    bloque.hidden = false;
+    document.getElementById('modalFormato').hidden = false;
+    document.getElementById('modalFormatoX').focus();
+  }
+  function cerrarFormato(){
+    document.getElementById('modalFormato').hidden = true;
+    document.getElementById('verFormato').focus();
+  }
+  document.getElementById('verFormato').onclick = e =>{ e.preventDefault(); abrirFormato(); };
+  document.getElementById('modalFormatoX').onclick = cerrarFormato;
+  document.getElementById('modalCerrar').onclick = cerrarFormato;
+  // Pulsar el fondo cierra; pulsar la tarjeta, no
+  document.getElementById('modalFormato').addEventListener('click', e =>{
+    if(e.target.id === 'modalFormato') cerrarFormato();
+  });
+  document.addEventListener('keydown', e =>{
+    if(e.key === 'Escape' && !document.getElementById('modalFormato').hidden) cerrarFormato();
+  });
+
   document.getElementById('mPlantilla').onclick = ()=>{
     const url = URL.createObjectURL(new Blob([plantillaCsv()], { type:'text/csv;charset=utf-8' }));
     const a = document.createElement('a');
@@ -1361,6 +1422,8 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
     btn.disabled = false;
     btn.textContent = `Subir ${filasOk.length} documento(s)`;
   }
+
+  document.getElementById('modalPlantilla').onclick = ()=> document.getElementById('mPlantilla').click();
 
   document.getElementById('mCsv').onchange  = validarMasiva;
   document.getElementById('mPdfs').onchange = validarMasiva;
