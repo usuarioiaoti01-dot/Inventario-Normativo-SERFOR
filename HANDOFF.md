@@ -195,9 +195,14 @@ Navegador (index.html + config.js + lib/supabase.js)
 11d. **El asistente de IA es solo para el administrador.** El botón flotante
    nace oculto y `toggleChat()` no hace nada si `isAdmin` es falso, así que no
    basta con desocultar el botón desde el navegador para usarlo.
-11e. **Fondo de la pantalla de acceso:** `fondo-serfor.jpg` en la raíz (y en
+11e. **Fondo de la pantalla de acceso:** `fondo-serfor.jpeg` (1600x810, 511 KB)
+   en la raíz (y en
    `publicar/`). Va en tres capas — velo verde, foto, degradado — de modo que si
    el archivo falta, la pantalla sigue viéndose bien con el degradado de siempre.
+   La foto original traía impresa la fecha del móvil abajo a la izquierda; se
+   recortó el 10 % inferior y el original se conserva en
+   `fondo-serfor-original.jpeg`. El velo verde se dejó al 42/66 % de opacidad:
+   más oscuro apagaba las lagunas y la foto no se distinguía.
 12. **Filtro por día** y **fecha de publicación real.** La fecha se extrae del
    propio PDF con `extraer-fechas-opr.ps1` (usa `pdftotext`, que trae Git for
    Windows). Criterios, medidos y no supuestos:
