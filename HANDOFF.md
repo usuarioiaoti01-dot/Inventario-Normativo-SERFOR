@@ -211,6 +211,19 @@ Navegador (index.html + config.js + lib/supabase.js)
    también cuando **no** hay atributo de tema, así que solo vale **dentro** de
    `@media (prefers-color-scheme: dark)`. Puesta fuera, pintaba el velo oscuro
    también en tema claro — ocurrió y costó dos vueltas detectarlo.
+11g. **Cada perfil carga en su propio conjunto** (2026-09-08). "Nuevos
+   registros" dejó de ser exclusivo del administrador: el Especialista sube a
+   Normativos OPR y el perfil Normas OTI a Normas OTI. El desplegable *Guardar
+   en* solo ofrece el conjunto que le corresponde, y el RLS lo hace cumplir
+   (`supabase-carga-por-perfil.sql`): el alta usa `ve_oti()` / `ve_opr()` y la
+   subida al bucket exige el prefijo correcto, así que nadie puede escribir en
+   el conjunto ajeno manipulando el navegador.
+   - **Modificar y borrar siguen siendo del administrador.** Solo se abrió el
+     alta. La única excepción es borrar en el bucket lo que uno mismo subió
+     (`owner = auth.uid()`), para que la aplicación pueda deshacer una carga a
+     medias sin dejar archivos huérfanos.
+   - La pestaña **Usuarios** y el **asistente de IA** siguen siendo solo del
+     administrador.
 12. **Filtro por día** y **fecha de publicación real.** La fecha se extrae del
    propio PDF con `extraer-fechas-opr.ps1` (usa `pdftotext`, que trae Git for
    Windows). Criterios, medidos y no supuestos:
@@ -258,6 +271,7 @@ Navegador (index.html + config.js + lib/supabase.js)
 | `supabase-storage-limpieza.sql` | Deja una sola regla de lectura del bucket | ❌ Solo instalación |
 | `supabase-perfiles-arreglo.sql` | Repara las políticas de `profiles` (rol no reconocido) | ❌ Solo instalación |
 | `supabase-tres-perfiles.sql` | **Los tres perfiles y su alcance.** Reemplaza a los dos anteriores | ❌ Solo instalación |
+| `supabase-carga-por-perfil.sql` | Permite que cada perfil cargue en su conjunto | ❌ Solo instalación |
 | `diagnostico-archivos.sql` | Separa "archivo ausente" de "acceso denegado" | ❌ Diagnóstico |
 | `extraer-fechas-opr.ps1` | Lee la fecha de publicación desde los PDF y genera el SQL | ❌ Solo migración |
 | `actualizar-fechas-opr.sql` | Corrige la fecha de 109 documentos OPR (generado) | ❌ Solo migración |

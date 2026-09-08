@@ -542,8 +542,8 @@
       </form>
 
       <div id="noAdmin" class="noadmin" hidden>
-        <h2>Solo administradores</h2>
-        <p>Tu cuenta no tiene permisos de administrador. Para agregar documentos, solí­citalos a la OTI.</p>
+        <h2>Sin permisos de carga</h2>
+        <p>Tu cuenta no tiene ningún conjunto donde registrar documentos. Solicítalo a la OTI.</p>
       </div>
     </div>
   </div>
@@ -852,10 +852,15 @@
     else if(!rol)  avisoPerfil('Tu perfil tiene el rol ' + JSON.stringify(prof.role) +
                      ', que no es ninguno de los dos validos (admin / especialista).');
     else           avisoPerfil(null);
-    document.getElementById('navNew').hidden = !isAdmin;
-    document.getElementById('navUsr').hidden = !isAdmin;
-    document.getElementById('adminForm').hidden = !isAdmin;
-    document.getElementById('noAdmin').hidden = isAdmin;
+    // Cargar documentos ya no es exclusivo del administrador: cada perfil
+    // puede hacerlo en SU conjunto. Quien manda es el RLS
+    // (ver supabase-carga-por-perfil.sql); aqui solo se decide que se muestra.
+    const puedeCargar = (ALCANCE[rol] || []).length > 0;
+    document.getElementById('navNew').hidden = !puedeCargar;
+    document.getElementById('navUsr').hidden = !isAdmin;      // cuentas, solo admin
+    document.getElementById('adminForm').hidden = !puedeCargar;
+    document.getElementById('masivaForm').hidden = !puedeCargar;
+    document.getElementById('noAdmin').hidden = puedeCargar;
     // El asistente de IA queda reservado al administrador
     document.getElementById('fab').hidden = !isAdmin;
     if(!isAdmin) document.getElementById('chatPanel').hidden = true;
@@ -1567,7 +1572,7 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
 
   document.getElementById('masivaForm').addEventListener('submit', async e=>{
     e.preventDefault();
-    if(!isAdmin || !MASIVA.listo) return;
+    if(!(ALCANCE[ROL] || []).length || !MASIVA.listo) return;
     const btn = document.getElementById('mSubir');
     const tabla = document.getElementById('mFuente').value;
     const nombreFuente = (FUENTES.find(f=>f.tabla===tabla)||{}).nombre || COL_BASE;
@@ -1611,7 +1616,8 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
 
   // ---------- Navegación entre vistas ----------
   function showView(v){
-    if((v==='new' || v==='usr') && !isAdmin) v = 'inv';   // solo administradores
+    if(v==='usr' && !isAdmin) v = 'inv';                      // cuentas, solo admin
+    if(v==='new' && !(ALCANCE[ROL] || []).length) v = 'inv';  // sin conjunto donde cargar
     const vistas = { inv:'viewInv', new:'viewNew', usr:'viewUsr' };
     const navs   = { inv:'navInv',  new:'navNew',  usr:'navUsr'  };
     Object.entries(vistas).forEach(([k,id])=> document.getElementById(id).hidden = (k!==v));
@@ -1713,7 +1719,7 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
 
   document.getElementById('uploadForm').addEventListener('submit', async e=>{
     e.preventDefault();
-    if(!isAdmin) return;
+    if(!(ALCANCE[ROL] || []).length) return;   // sin conjunto donde cargar
     const btn = document.getElementById('uploadBtn'); const msg = document.getElementById('formMsg');
     const file = fileInput.files[0];
     if(!file){ msg.className='form-msg err'; msg.textContent='Selecciona un archivo PDF.'; return; }

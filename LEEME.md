@@ -217,9 +217,13 @@ datos** (reglas RLS), no solo escondiendo botones:
 
 | Perfil | Qué ve |
 |---|---|
-| **Administrador** | Todo: las dos pestañas, sube documentos y gestiona cuentas. |
-| **Especialista** | Solo *Normativos OPR*. No ve Normas OTI ni puede subir nada. |
-| **Normas OTI** | Solo *Normas OTI*. No ve Normativos OPR ni puede subir nada. |
+| **Administrador** | Los dos conjuntos. Sube documentos a cualquiera y gestiona cuentas. |
+| **Especialista** | Solo *Normativos OPR*: lo consulta, lo descarga y **sube documentos a ese conjunto**. |
+| **Normas OTI** | Solo *Normas OTI*: lo consulta, lo descarga y **sube documentos a ese conjunto**. |
+
+Modificar o borrar lo ya registrado sigue siendo del administrador; los otros
+dos perfiles solo pueden **añadir**. El asistente de IA y la pestaña *Usuarios*
+son exclusivos del administrador.
 
 > Un especialista no solo deja de ver la pestaña: la consulta a la tabla
 > `documentos` le devuelve cero filas y el bucket le niega los PDF que no lleven
