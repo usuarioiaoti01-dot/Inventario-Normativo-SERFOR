@@ -186,6 +186,18 @@ Navegador (index.html + config.js + lib/supabase.js)
    mientras la lista mostraba, correctamente, Normas OTI. Ahora: un solo
    conjunto → "Inventario " + su nombre corto (`OPR` / `Normas OTI`); varios
    conjuntos → "Inventario" a secas.
+11c. **Descarga directa.** El atributo `download=""` **no funciona** con archivos
+   de otro dominio: el navegador lo ignora y abre el PDF en una pestaña. Se
+   resuelve añadiendo `?download=<nombre>` a la URL firmada, con lo que es
+   Supabase quien responde `Content-Disposition: attachment`. Ese parámetro va
+   **solo** en el botón Descargar: el visor y "Abrir en pestaña" usan la URL
+   limpia, o intentarían descargar en vez de mostrar.
+11d. **El asistente de IA es solo para el administrador.** El botón flotante
+   nace oculto y `toggleChat()` no hace nada si `isAdmin` es falso, así que no
+   basta con desocultar el botón desde el navegador para usarlo.
+11e. **Fondo de la pantalla de acceso:** `fondo-serfor.jpg` en la raíz (y en
+   `publicar/`). Va en tres capas — velo verde, foto, degradado — de modo que si
+   el archivo falta, la pantalla sigue viéndose bien con el degradado de siempre.
 12. **Filtro por día** y **fecha de publicación real.** La fecha se extrae del
    propio PDF con `extraer-fechas-opr.ps1` (usa `pdftotext`, que trae Git for
    Windows). Criterios, medidos y no supuestos:

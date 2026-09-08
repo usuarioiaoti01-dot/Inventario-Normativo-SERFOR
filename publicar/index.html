@@ -41,7 +41,11 @@
   body{background:var(--bg);color:var(--ink);font-family:"Segoe UI",-apple-system,system-ui,Roboto,Helvetica,Arial,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;height:100vh;overflow:hidden}
 
   /* ---------- Pantallas de login / setup ---------- */
-  .auth-screen{height:100vh;display:grid;place-items:center;background:linear-gradient(160deg,var(--brand-deep),#152f1b);padding:20px}
+  .auth-screen{height:100vh;display:grid;place-items:center;padding:20px;
+    background:
+      linear-gradient(160deg, rgba(35,79,44,.78), rgba(21,47,27,.90)),
+      url('fondo-serfor.jpg') center/cover no-repeat,
+      linear-gradient(160deg,var(--brand-deep),#152f1b);}
   .auth-card{background:var(--surface);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.35);padding:34px 30px;width:100%;max-width:390px}
   .auth-card .seal{width:52px;height:52px;border-radius:11px;background:linear-gradient(150deg,var(--accent),#8a6320);display:grid;place-items:center;color:#fff;font-weight:700;font-size:1.3rem;margin:0 auto 16px;box-shadow:inset 0 0 0 2px rgba(255,255,255,.18)}
   .auth-card h1{margin:0;text-align:center;font-size:1.15rem}
@@ -590,7 +594,7 @@
   </div>
 
   <!-- Asistente IA flotante -->
-  <button id="fab" class="fab" onclick="toggleChat()" title="Consulta el contenido del documento con IA">
+  <button id="fab" class="fab" hidden onclick="toggleChat()" title="Consulta el contenido del documento con IA">
     <img src="capibara-serfor.png" alt="" onerror="this.style.display='none'">
     <span>Consulta Contenido</span>
   </button>
@@ -756,6 +760,7 @@
     document.getElementById('pdfWrap').hidden = true; marco.removeAttribute('src');
 
     document.getElementById('chatPanel').hidden = true;
+    document.getElementById('fab').hidden = true;
     document.getElementById('userEmail').textContent = '';
     const chip = document.getElementById('roleTag');
     chip.textContent = ''; chip.classList.remove('alerta'); chip.title = '';
@@ -825,6 +830,9 @@
     document.getElementById('navUsr').hidden = !isAdmin;
     document.getElementById('adminForm').hidden = !isAdmin;
     document.getElementById('noAdmin').hidden = isAdmin;
+    // El asistente de IA queda reservado al administrador
+    document.getElementById('fab').hidden = !isAdmin;
+    if(!isAdmin) document.getElementById('chatPanel').hidden = true;
     showView('inv');
     await loadDocs();
     rotularInventario();
@@ -1123,6 +1131,13 @@
     pane.innerHTML = html;
   }
 
+  // Nombre con el que se guarda el PDF. Se usa el original si lo hay, y se
+  // evita el ".pdf.pdf" que salia al añadir la extension a ciegas.
+  function nombreDescarga(d){
+    const base = (d.original || d.titulo || 'documento').trim();
+    return /\.pdf$/i.test(base) ? base : base + '.pdf';
+  }
+
   async function select(key){
     const d = INVENTARIO.find(x=>x._key===key); if(!d) return;
     state.active = key; render();
@@ -1143,8 +1158,16 @@
     // zoom=100: tamaño real del documento (antes 'view=FitH', que lo ajustaba al ancho)
     document.getElementById('pdfFrame').src = url + (url.includes('#')?'':'#') + 'navpanes=0&pagemode=none&zoom=100';
     document.getElementById('pdfWrap').hidden = false;
+
+    // El atributo download="" no funciona con archivos de otro dominio: el
+    // navegador lo ignora y abre el PDF en una pestaña. Con ?download=<nombre>
+    // es Supabase quien responde "Content-Disposition: attachment", y entonces
+    // el navegador guarda el archivo en lugar de mostrarlo.
+    const nombre = nombreDescarga(d);
+    const urlDescarga = url + (url.includes('?') ? '&' : '?') + 'download=' + encodeURIComponent(nombre);
+
     acts.innerHTML = `
-      <a class="btn" href="${url}" download="${esc(d.original||d.titulo)}.pdf">
+      <a class="btn" href="${urlDescarga}" download="${esc(nombre)}">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg> Descargar
       </a>
       <a class="btn ghost" href="${url}" target="_blank" rel="noopener">Abrir en pestaña</a>`;
@@ -1572,6 +1595,7 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
 
   // ---------- Asistente IA flotante ----------
   function toggleChat(){
+    if(!isAdmin) return;              // reservado al administrador
     const panel = document.getElementById('chatPanel');
     panel.hidden = !panel.hidden;
     if(!panel.hidden && !document.getElementById('chatQ').disabled) document.getElementById('chatQ').focus();
@@ -1579,6 +1603,7 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
 
   let chatDoc = null;  // documento activo para el chat
   function resetChat(d){
+    if(!isAdmin) return;
     chatDoc = d;
     document.getElementById('chatScope').textContent = d.titulo;
     document.getElementById('chatLog').innerHTML =
