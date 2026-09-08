@@ -198,7 +198,33 @@
   .badge.der{background:var(--stop-bg);color:var(--stop)}
   .empty{padding:48px 24px;text-align:center;color:var(--ink-faint);font-size:.9rem}
 
-  .detail-pane{display:flex;flex-direction:column;background:var(--surface-2);min-height:0}
+  /* El panel del documento lleva la fotografia de fondo: se ve mientras no hay
+     nada abierto y queda tapada por el PDF en cuanto se elige un documento.
+     Tres capas: velo, foto y color de respaldo por si el archivo falta.
+     OJO con el tema: ':root:not([data-theme="light"])' casa TAMBIEN cuando no
+     hay atributo, asi que solo vale DENTRO de la consulta de medios. Fuera de
+     ella pintaba el velo oscuro en tema claro. */
+  .detail-pane{display:flex;flex-direction:column;min-height:0;
+    background:
+      linear-gradient(160deg, rgba(238,241,234,.86), rgba(231,239,227,.90)),
+      url('fondo-inventario.jpeg') center/cover no-repeat,
+      var(--surface-2);}
+  .detail-pane .viewer-empty{text-shadow:0 1px 2px rgba(255,255,255,.75)}
+
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]) .detail-pane{
+      background:
+        linear-gradient(160deg, rgba(18,22,15,.80), rgba(30,42,29,.86)),
+        url('fondo-inventario.jpeg') center/cover no-repeat,
+        var(--surface-2);}
+    :root:not([data-theme="light"]) .detail-pane .viewer-empty{text-shadow:0 1px 3px rgba(0,0,0,.6)}
+  }
+  :root[data-theme="dark"] .detail-pane{
+    background:
+      linear-gradient(160deg, rgba(18,22,15,.80), rgba(30,42,29,.86)),
+      url('fondo-inventario.jpeg') center/cover no-repeat,
+      var(--surface-2);}
+  :root[data-theme="dark"] .detail-pane .viewer-empty{text-shadow:0 1px 3px rgba(0,0,0,.6)}
   .pane-head{display:flex;align-items:center;gap:7px;padding:6px 16px;border-bottom:1px solid var(--line);background:var(--brand-tint);color:var(--brand);font-size:.78rem;font-weight:700;flex:none}
   /* Botón flotante "Consulta Contenido" */
   .fab{position:fixed;right:22px;bottom:22px;z-index:60;display:flex;align-items:center;gap:10px;padding:8px 18px 8px 8px;border:0;border-radius:40px;background:linear-gradient(135deg,#e8912e,#c96f1a);color:#fff;font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer;box-shadow:0 8px 22px rgba(0,0,0,.3)}
@@ -230,7 +256,7 @@
   .chat-input button:disabled{opacity:.5;cursor:default}
   .chat-disclaimer{font-size:.7rem;color:var(--warn);background:var(--warn-bg);text-align:center;padding:8px 12px;line-height:1.35;border-top:1px solid var(--line)}
   .pane-body{flex:1;min-height:0;display:flex;flex-direction:column}
-  .viewer-empty{display:grid;place-items:center;height:100%;color:var(--ink-faint);text-align:center;padding:30px}
+  .viewer-empty{display:grid;place-items:center;height:100%;color:var(--ink-soft);text-align:center;padding:30px}
   .doc-head{padding:6px 16px;border-bottom:1px solid var(--line);background:var(--surface);flex:none}
   .doc-head .sub{color:var(--brand);font-weight:700;font-size:.78rem}
   .doc-head h2{margin:3px 0 8px;font-size:1rem;overflow-wrap:anywhere}
