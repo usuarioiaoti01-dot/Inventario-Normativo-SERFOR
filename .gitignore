@@ -15,3 +15,7 @@ desktop.ini
 # Temporales
 *.tmp
 *.log
+
+# Copia suelta de la foto tal como se descargo (nombre con espacios).
+# La version limpia esta en fondo-inventario-original.jpeg
+fondo-serfor (2)*.jpeg

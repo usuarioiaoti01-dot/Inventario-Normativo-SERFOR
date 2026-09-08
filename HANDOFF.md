@@ -203,6 +203,14 @@ Navegador (index.html + config.js + lib/supabase.js)
    recortó el 10 % inferior y el original se conserva en
    `fondo-serfor-original.jpeg`. El velo verde se dejó al 42/66 % de opacidad:
    más oscuro apagaba las lagunas y la foto no se distinguía.
+11f. **Fondo del panel de documento:** `fondo-inventario.jpeg` (1280x655). Se ve
+   mientras no hay nada abierto y el PDF la tapa al elegir un documento. Mismo
+   tratamiento que la de acceso: recorte del 10 % inferior por la fecha impresa
+   (original en `fondo-inventario-original.jpeg`) y velo en tres capas.
+   ⚠️ **Al escribir la variante oscura:** `:root:not([data-theme="light"])` casa
+   también cuando **no** hay atributo de tema, así que solo vale **dentro** de
+   `@media (prefers-color-scheme: dark)`. Puesta fuera, pintaba el velo oscuro
+   también en tema claro — ocurrió y costó dos vueltas detectarlo.
 12. **Filtro por día** y **fecha de publicación real.** La fecha se extrae del
    propio PDF con `extraer-fechas-opr.ps1` (usa `pdftotext`, que trae Git for
    Windows). Criterios, medidos y no supuestos:
