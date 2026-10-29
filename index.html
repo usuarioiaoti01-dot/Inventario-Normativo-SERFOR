@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Inventario Normativo SERFOR</title>
+<title>Inventario Normativo SERFOR v.01</title>
 <style>
   :root {
     --bg:#f3f5f1; --surface:#ffffff; --surface-2:#eef1ea;
@@ -69,7 +69,12 @@
   #app{display:flex;flex-direction:column;height:100vh}
   header.top{background:var(--brand-deep);color:#f0f4ec;padding:0 24px;display:flex;align-items:center;gap:16px;flex:none;height:76px}
   .seal-sm{width:48px;height:48px;flex:none;border-radius:10px;background:linear-gradient(150deg,var(--accent),#8a6320);display:grid;place-items:center;color:#fff;font-weight:700;font-size:1.2rem;box-shadow:inset 0 0 0 2px rgba(255,255,255,.18)}
-  .brand-txt h1{margin:0;font-size:1.3rem;font-weight:650;line-height:1.25}
+  .brand-txt h1{margin:0;font-size:1.3rem;font-weight:650;line-height:1.25;
+    display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  /* Distintivo de version: dos publicaciones conviven y hay que saber cual se mira */
+  .vchip{font-size:.66rem;font-weight:800;letter-spacing:.08em;padding:3px 8px;border-radius:999px;
+    background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.3);
+    white-space:nowrap;position:relative;top:1px}
   .brand-txt p{margin:0;font-size:.86rem;color:#b9cbb1;letter-spacing:.04em;text-transform:uppercase;line-height:1.3}
   .navtabs{display:flex;gap:4px;margin-left:24px;height:100%}
   .navtabs button{background:transparent;border:0;color:#c6d6be;font-size:.88rem;font-weight:600;padding:0 16px;cursor:pointer;font-family:inherit;border-bottom:3px solid transparent}
@@ -393,7 +398,7 @@
   <header class="top">
     <div class="seal-sm">SF</div>
     <div class="brand-txt">
-      <h1>Inventario Normativo SERFOR</h1>
+      <h1>Inventario Normativo SERFOR <span class="vchip">v.01</span></h1>
       <p>Servicio Nacional Forestal y de Fauna Silvestre</p>
     </div>
     <nav class="navtabs">
