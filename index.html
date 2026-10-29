@@ -2046,11 +2046,18 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
     } catch(e){
       pending.className = 'msg err';
       let msg = (e && e.message) ? e.message : String(e);
-      // Intentar leer el detalle real que devolvió la función
+      // Leer el detalle real que devolvió la función. Si no es JSON —porque el
+      // proceso murió o falló la plataforma— se muestra el código y el texto
+      // crudo: "returned a non-2xx status code" no le sirve a nadie.
       try {
-        if(e && e.context && typeof e.context.json === 'function'){
-          const body = await e.context.json();
+        const r = e && e.context;
+        if(r && typeof r.text === 'function'){
+          const crudo = await r.text();
+          let body = null;
+          try { body = JSON.parse(crudo); } catch(_) {}
           if(body && body.error) msg = body.error;
+          else if(crudo && crudo.trim()) msg = `HTTP ${r.status||'?'} — ${crudo.trim().slice(0,300)}`;
+          else if(r.status) msg = `HTTP ${r.status} sin detalle (la función se interrumpió).`;
         }
       } catch(_) {}
       // Mensajes amigables para casos conocidos
