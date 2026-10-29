@@ -285,6 +285,19 @@
   .usr-tabla .sec{font-size:.78rem;color:var(--ink-faint)}
   .usr-tabla select{padding:6px 8px;border:1px solid var(--line-strong);border-radius:7px;background:var(--surface);color:var(--ink);font-family:inherit;font-size:.82rem}
   .usr-acc{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+  /* Casillas de permiso del editor de perfiles */
+  .perm-tit{font-size:.74rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--ink-faint);margin:20px 0 9px}
+  .perm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:9px}
+  .perm{display:flex;align-items:center;gap:9px;padding:10px 12px;border:1px solid var(--line);
+    border-radius:9px;background:var(--surface-2);cursor:pointer;font-size:.87rem;color:var(--ink)}
+  .perm:hover{border-color:var(--line-strong)}
+  .perm input{width:16px;height:16px;accent-color:var(--brand);cursor:pointer;margin:0;flex:none}
+  .perm.fijo{opacity:.55;cursor:not-allowed}
+  .perm.fijo input{cursor:not-allowed}
+  .pchip-perm{display:inline-block;padding:2px 7px;border-radius:999px;font-size:.72rem;
+    font-weight:600;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-soft);
+    margin:0 4px 3px 0;white-space:nowrap}
   .btn-mini{padding:6px 10px;font-size:.78rem;border-radius:7px;border:1px solid var(--line-strong);background:transparent;color:var(--ink-soft);cursor:pointer;font-family:inherit;font-weight:600}
   .btn-mini:hover{background:var(--surface-2);color:var(--ink)}
   .btn-mini.peligro{color:var(--stop);border-color:var(--stop)}
@@ -551,6 +564,76 @@
   <!-- Vista: Usuarios (solo administradores) -->
   <div id="viewUsr" class="view" hidden>
     <div class="form-view">
+      <!-- Perfiles de acceso: que ve y que puede hacer cada uno -->
+      <div class="form-card usr-card">
+        <h2>Perfiles de acceso</h2>
+        <p class="hint">Un perfil define qué conjuntos ve una persona y qué puede hacer con ellos.
+          Los cambios surten efecto de inmediato, también para quien ya tenga la sesión abierta.</p>
+        <div style="overflow-x:auto">
+          <table class="usr-tabla">
+            <thead>
+              <tr>
+                <th>Perfil</th>
+                <th>Ve</th>
+                <th class="ocultable">Carga en</th>
+                <th class="ocultable">Además</th>
+                <th>Cuentas</th>
+                <th style="text-align:right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="perfCuerpo"></tbody>
+          </table>
+        </div>
+        <div id="perfMsg"></div>
+        <div style="margin-top:16px">
+          <button class="btn" type="button" id="nuevoPerfilBtn">Crear perfil</button>
+        </div>
+      </div>
+
+      <!-- Editor: el alta y la modificacion comparten formulario -->
+      <form class="form-card usr-card" id="perfilForm" hidden>
+        <h2 id="perfilTitulo">Nuevo perfil</h2>
+        <p class="hint" id="perfilPista">La clave identifica al perfil en la base de datos.</p>
+        <div class="form-grid">
+          <div class="field">
+            <label for="pClave">Clave *</label>
+            <input id="pClave" required placeholder="Ej: consulta_opr" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="pNombre">Nombre visible *</label>
+            <input id="pNombre" required placeholder="Ej: Consulta OPR" autocomplete="off">
+          </div>
+        </div>
+        <div class="field" style="margin-top:2px">
+          <label for="pDesc">Descripción</label>
+          <input id="pDesc" placeholder="Para qué sirve este perfil" autocomplete="off">
+        </div>
+
+        <h3 class="perm-tit">Qué puede ver</h3>
+        <div class="perm-grid">
+          <label class="perm"><input type="checkbox" id="pVeOti"> Normas OTI</label>
+          <label class="perm"><input type="checkbox" id="pVeOpr"> Normativos OPR</label>
+        </div>
+
+        <h3 class="perm-tit">Dónde puede cargar documentos</h3>
+        <div class="perm-grid">
+          <label class="perm"><input type="checkbox" id="pCargaOti"> Normas OTI</label>
+          <label class="perm"><input type="checkbox" id="pCargaOpr"> Normativos OPR</label>
+        </div>
+
+        <h3 class="perm-tit">Permisos adicionales</h3>
+        <div class="perm-grid">
+          <label class="perm"><input type="checkbox" id="pCuentas"> Gestionar cuentas y perfiles</label>
+          <label class="perm"><input type="checkbox" id="pAsistente"> Usar el asistente de IA</label>
+        </div>
+
+        <div id="perfilFormMsg"></div>
+        <div style="margin-top:18px;display:flex;gap:10px">
+          <button class="btn" id="guardarPerfilBtn" type="submit">Guardar perfil</button>
+          <button class="btn ghost" type="button" id="cancelarPerfilBtn">Cancelar</button>
+        </div>
+      </form>
+
       <form class="form-card usr-card" id="crearUsrForm">
         <h2>Crear cuenta de acceso</h2>
         <p class="hint">La clave que definas aquí es temporal: al entrar por primera vez, la persona deberá cambiarla.</p>
@@ -565,11 +648,7 @@
           </div>
           <div class="field">
             <label for="nRol">Perfil *</label>
-            <select id="nRol">
-              <option value="especialista">Especialista — solo Normativos OPR</option>
-              <option value="normas_oti">Normas OTI — solo Normas OTI</option>
-              <option value="admin">Administrador — ve todo y gestiona cuentas</option>
-            </select>
+            <select id="nRol"></select>
           </div>
           <div class="field">
             <label for="nClave">Clave inicial *</label>
@@ -712,26 +791,52 @@
   document.getElementById('logoutBtn').onclick = async ()=>{ await sb.auth.signOut(); };
 
   // ---------- Entrar a la app ----------
-  const ROTULO_ROL = { admin:'Administrador', especialista:'Especialista', normas_oti:'Normas OTI' };
+  // Los perfiles ya no estan escritos aqui: viven en la tabla "perfiles_acceso" y se
+  // administran desde la pantalla Usuarios (supabase-perfiles-editables.sql).
+  // Lo de aqui es solo para la interfaz; quien manda de verdad son las reglas
+  // RLS, que leen esa misma tabla.
+  let PERFILES = [];           // filas tal cual vienen de la base
+  const ROTULO_ROL = {};       // clave -> nombre visible
+  const ALCANCE    = {};       // clave -> tablas que PUEDE VER
+  const CARGA      = {};       // clave -> tablas donde PUEDE CARGAR
 
-  // Que conjunto ve cada perfil. Es solo para la interfaz: quien manda de verdad
-  // son las reglas RLS de la base (ver supabase-tres-perfiles.sql).
-  const ALCANCE = {
-    admin:        ['documentos','normativos_opr'],
-    especialista: ['normativos_opr'],
-    normas_oti:   ['documentos']
-  };
+  const perfilDe = c => PERFILES.find(x => x.clave === c) || null;
+  //  ¿El perfil de quien esta dentro tiene este permiso?
+  const puedo = f => !!(perfilDe(ROL) || {})[f];
 
-  // El rol se compara normalizado (sin espacios, sin mayusculas, sin tildes) para
-  // que un 'Admin', ' admin ' o 'Administrador' guardado a mano no deje al
-  // usuario sin sus permisos. Devuelve 'admin', 'especialista' o null si no se
-  // reconoce: en ese caso la interfaz lo dice en vez de fingir un rol.
-  function normalizarRol(r){
-    const v = String(r||'').trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-    if(v === 'admin' || v === 'administrador') return 'admin';
-    if(v === 'especialista' || v === 'lector' || v === 'profesional') return 'especialista';
-    if(v === 'normas_oti' || v === 'normas oti' || v === 'oti') return 'normas_oti';
+  //  Rellena los indices que usa el resto de la interfaz. Se vacian en vez de
+  //  reasignarse para que las constantes sigan siendo las mismas referencias.
+  function indexarPerfiles(filas){
+    PERFILES = filas || [];
+    [ROTULO_ROL, ALCANCE, CARGA].forEach(o => Object.keys(o).forEach(k => delete o[k]));
+    PERFILES.forEach(f => {
+      ROTULO_ROL[f.clave] = f.nombre || f.clave;
+      ALCANCE[f.clave] = [].concat(f.ve_oti ? ['documentos'] : [], f.ve_opr ? ['normativos_opr'] : []);
+      CARGA[f.clave]   = [].concat(f.carga_oti ? ['documentos'] : [], f.carga_opr ? ['normativos_opr'] : []);
+    });
+  }
+
+  async function cargarPerfiles(){
+    const { data, error } = await sb.from('perfiles_acceso')
+      .select('clave,nombre,descripcion,ve_oti,ve_opr,carga_oti,carga_opr,gestiona_cuentas,usa_asistente,del_sistema,orden')
+      .order('orden').order('clave');
+    if(error){ indexarPerfiles([]); return error.message; }
+    indexarPerfiles(data);
     return null;
+  }
+
+  // El rol se compara normalizado (sin espacios, sin mayusculas, sin tildes)
+  // para que un 'Admin', ' admin ' o 'Administrador' guardado a mano no deje
+  // al usuario sin sus permisos. Devuelve la clave del perfil, o null si no
+  // corresponde a ninguno: en ese caso la interfaz lo dice en vez de fingir.
+  const ALIAS_ROL = { administrador:'admin', administrator:'admin',
+                      profesional:'especialista', oti:'normas_oti' };
+  function normalizarRol(r){
+    const v = String(r||'').trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+                .toLowerCase().replace(/\s+/g,'_');
+    if(ROTULO_ROL[v]) return v;
+    const a = ALIAS_ROL[v];
+    return (a && ROTULO_ROL[a]) ? a : null;
   }
 
   // getSession() y onAuthStateChange pueden dispararse casi a la vez: sin este
@@ -766,6 +871,7 @@
   function limpiarSesion(){
     currentUser = null; isAdmin = false; ROL = null;
     INVENTARIO = []; GRUPOS = []; VISIBLES = []; USUARIOS = [];
+    indexarPerfiles([]);          // los perfiles tambien se olvidan al salir
     CARPETAS = new Map();
     Object.keys(COL_OK).forEach(k => delete COL_OK[k]);
     Object.assign(state, { q:"", tipo:"", ent:"", year:"", grupo:"", col:"", fecha:"", active:null });
@@ -830,6 +936,9 @@
     currentUser = session.user;
     document.getElementById('userEmail').textContent = currentUser.email;
 
+    //  Primero los perfiles: sin ellos no se sabe que significa el rol.
+    const falloPerfiles = await cargarPerfiles();
+
     const { perfil: prof, fallo } = await leerPerfil(currentUser.id);
 
     // Primer ingreso con la clave que dio el administrador: no se entra sin cambiarla
@@ -838,7 +947,7 @@
     show('app');
     const rol = prof ? normalizarRol(prof.role) : null;
     ROL = rol;
-    isAdmin = rol === 'admin';
+    isAdmin = !!(perfilDe(rol) || {}).gestiona_cuentas;   // "admin" = gestiona cuentas
 
     // Sin perfil legible NO se finge un rol: se avisa. Antes se mostraba
     // "Especialista" en silencio y parecia un problema de permisos cuando en
@@ -848,22 +957,25 @@
     chip.classList.toggle('alerta', !rol);
     chip.title = prof ? ('Valor guardado en profiles.role: ' + JSON.stringify(prof.role)) : '';
 
-    if(!prof)      avisoPerfil(fallo);
+    if(falloPerfiles) avisoPerfil('No se pudo leer la tabla de perfiles: ' + falloPerfiles +
+                        ' Ejecuta supabase-perfiles-editables.sql.');
+    else if(!prof) avisoPerfil(fallo);
     else if(!rol)  avisoPerfil('Tu perfil tiene el rol ' + JSON.stringify(prof.role) +
                      ', que no es ninguno de los dos validos (admin / especialista).');
     else           avisoPerfil(null);
     // Cargar documentos ya no es exclusivo del administrador: cada perfil
     // puede hacerlo en SU conjunto. Quien manda es el RLS
     // (ver supabase-carga-por-perfil.sql); aqui solo se decide que se muestra.
-    const puedeCargar = (ALCANCE[rol] || []).length > 0;
+    const puedeCargar = (CARGA[rol] || []).length > 0;
     document.getElementById('navNew').hidden = !puedeCargar;
     document.getElementById('navUsr').hidden = !isAdmin;      // cuentas, solo admin
     document.getElementById('adminForm').hidden = !puedeCargar;
     document.getElementById('masivaForm').hidden = !puedeCargar;
     document.getElementById('noAdmin').hidden = puedeCargar;
-    // El asistente de IA queda reservado al administrador
-    document.getElementById('fab').hidden = !isAdmin;
-    if(!isAdmin) document.getElementById('chatPanel').hidden = true;
+    // El asistente de IA se concede por perfil, no por ser administrador
+    const usaAsistente = !!(perfilDe(rol) || {}).usa_asistente;
+    document.getElementById('fab').hidden = !usaAsistente;
+    if(!usaAsistente) document.getElementById('chatPanel').hidden = true;
     showView('inv');
     await loadDocs();
     rotularInventario();
@@ -1231,11 +1343,17 @@
     try {
       const r = await admUsuarios({ accion:'listar' });
       USUARIOS = r.usuarios || [];
-      const porRol = {admin:0, especialista:0, normas_oti:0};
-      USUARIOS.forEach(u=>{ const r = normalizarRol(u.role); if(r) porRol[r]++; });
-      resumen.textContent = `${USUARIOS.length} cuenta(s): ${porRol.admin} de Administrador, ` +
-        `${porRol.especialista} de Especialista y ${porRol.normas_oti} de Normas OTI.`;
+      //  El reparto se arma con los perfiles que existan, no con tres fijos
+      const porRol = {};
+      USUARIOS.forEach(u=>{ const r = normalizarRol(u.role); if(r) porRol[r] = (porRol[r]||0)+1; });
+      const reparto = PERFILES.filter(f=>porRol[f.clave])
+        .map(f=>`${porRol[f.clave]} de ${f.nombre}`).join(', ');
+      const sinPerfil = USUARIOS.length - Object.values(porRol).reduce((a,b)=>a+b,0);
+      resumen.textContent = `${USUARIOS.length} cuenta(s)` + (reparto ? `: ${reparto}` : '') +
+        (sinPerfil ? ` · ${sinPerfil} sin perfil válido` : '') + '.';
       pintarUsuarios();
+      pintarPerfiles();
+      buildRolSelect();
     } catch(e){
       USUARIOS = [];
       resumen.textContent = '';
@@ -1254,8 +1372,8 @@
         </td>
         <td>
           <select onchange="cambiarRol(${i}, this.value)" ${u.soy_yo?'disabled title="No puedes cambiar tu propio perfil"':''}>
-            ${['especialista','normas_oti','admin'].map(r=>
-              `<option value="${r}" ${normalizarRol(u.role)===r?'selected':''}>${ROTULO_ROL[r]}</option>`).join('')}
+            ${PERFILES.map(f=>
+              `<option value="${f.clave}" ${normalizarRol(u.role)===f.clave?'selected':''}>${esc(f.nombre)}</option>`).join('')}
           </select>
           ${u.debe_cambiar_clave?'<div style="margin-top:5px"><span class="etq pend">clave sin estrenar</span></div>':''}
         </td>
@@ -1267,6 +1385,126 @@
           </div>
         </td>
       </tr>`).join('');
+  }
+
+  // ---------- Perfiles de acceso ----------
+  const avisoPerf = (texto, ok) => {
+    const el = document.getElementById('perfMsg');
+    el.className = ok ? 'form-msg ok' : 'form-msg err';
+    el.textContent = texto;
+    if(ok) setTimeout(()=>{ el.textContent=''; el.className=''; }, 5000);
+  };
+
+  //  Cuantas cuentas usa cada perfil: decide si se puede eliminar
+  const cuentasDe = clave => USUARIOS.filter(u => normalizarRol(u.role) === clave).length;
+
+  function pintarPerfiles(){
+    const cuerpo = document.getElementById('perfCuerpo');
+    if(!PERFILES.length){
+      cuerpo.innerHTML = `<tr><td colspan="6" class="sec">No se pudo leer la tabla de perfiles. ` +
+        `Ejecuta <b>supabase-perfiles-editables.sql</b>.</td></tr>`;
+      return;
+    }
+    const chip = t => `<span class="pchip-perm">${esc(t)}</span>`;
+    const lista = arr => arr.length ? arr.map(chip).join('') : '<span class="sec">—</span>';
+
+    cuerpo.innerHTML = PERFILES.map(f=>{
+      const n = cuentasDe(f.clave);
+      const ve    = [].concat(f.ve_oti?['Normas OTI']:[], f.ve_opr?['Normativos OPR']:[]);
+      const carga = [].concat(f.carga_oti?['Normas OTI']:[], f.carga_opr?['Normativos OPR']:[]);
+      const extra = [].concat(f.gestiona_cuentas?['Cuentas']:[], f.usa_asistente?['Asistente IA']:[]);
+      //  Un perfil de sistema no se elimina; uno con cuentas tampoco (lo impide la base)
+      const motivo = f.del_sistema ? 'Es un perfil del sistema'
+                   : n ? `Hay ${n} cuenta(s) con este perfil` : '';
+      return `
+      <tr>
+        <td>
+          <div class="correo">${esc(f.nombre)}${f.del_sistema?' <span class="pchip-perm">sistema</span>':''}</div>
+          <div class="sec">${esc(f.clave)}${f.descripcion?' · '+esc(f.descripcion):''}</div>
+        </td>
+        <td>${lista(ve)}</td>
+        <td class="ocultable">${lista(carga)}</td>
+        <td class="ocultable">${lista(extra)}</td>
+        <td class="sec">${n}</td>
+        <td>
+          <div class="usr-acc">
+            <button class="btn-mini" onclick="editarPerfil('${esc(f.clave)}')">Modificar</button>
+            <button class="btn-mini peligro" onclick="eliminarPerfil('${esc(f.clave)}')"
+              ${motivo?`disabled title="${esc(motivo)}"`:''}>Eliminar</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  //  Abrir el editor. Sin clave = alta; con clave = modificacion.
+  let perfilEditando = null;
+  function abrirPerfil(clave){
+    const f = clave ? perfilDe(clave) : null;
+    if(clave && !f) return;
+    perfilEditando = clave || null;
+
+    document.getElementById('perfilTitulo').textContent = f ? `Modificar «${f.nombre}»` : 'Nuevo perfil';
+    document.getElementById('perfilPista').textContent = f
+      ? 'La clave no se puede cambiar: es la que tienen guardada las cuentas.'
+      : 'La clave identifica al perfil en la base de datos. Minúsculas, sin espacios ni tildes.';
+
+    const cl = document.getElementById('pClave');
+    cl.value = f ? f.clave : '';
+    cl.disabled = !!f;
+    document.getElementById('pNombre').value = f ? (f.nombre||'') : '';
+    document.getElementById('pDesc').value   = f ? (f.descripcion||'') : '';
+    [['pVeOti','ve_oti'],['pVeOpr','ve_opr'],['pCargaOti','carga_oti'],['pCargaOpr','carga_opr'],
+     ['pCuentas','gestiona_cuentas'],['pAsistente','usa_asistente']].forEach(([id,campo])=>{
+      document.getElementById(id).checked = f ? !!f[campo] : false;
+    });
+
+    //  En un perfil de sistema, la gestion de cuentas no se toca: es el seguro
+    //  que impide quedarse sin nadie capaz de administrar.
+    const cu = document.getElementById('pCuentas');
+    cu.disabled = !!(f && f.del_sistema);
+    cu.closest('.perm').classList.toggle('fijo', cu.disabled);
+
+    document.getElementById('perfilFormMsg').textContent = '';
+    document.getElementById('perfilFormMsg').className = '';
+    document.getElementById('perfilForm').hidden = false;
+    document.getElementById('perfilForm').scrollIntoView({behavior:'smooth', block:'center'});
+  }
+  const editarPerfil = clave => abrirPerfil(clave);
+  function cerrarPerfil(){
+    document.getElementById('perfilForm').hidden = true;
+    perfilEditando = null;
+  }
+
+  async function eliminarPerfil(clave){
+    const f = perfilDe(clave); if(!f) return;
+    if(!confirm(`¿Eliminar el perfil «${f.nombre}»?
+
+Las cuentas que lo tengan quedarían sin acceso. Esta acción no se puede deshacer.`)) return;
+    const { error } = await sb.from('perfiles_acceso').delete().eq('clave', clave);
+    if(error){ avisoPerf(error.message, false); return; }
+    await cargarPerfiles();
+    pintarPerfiles(); pintarUsuarios(); buildRolSelect();
+    avisoPerf(`Perfil «${f.nombre}» eliminado.`, true);
+  }
+
+  //  El desplegable del alta de cuentas se arma con los perfiles que existan
+  function buildRolSelect(){
+    const el = document.getElementById('nRol');
+    if(!el) return;
+    const previo = el.value;
+    el.innerHTML = PERFILES.map(f=>{
+      const ve = [].concat(f.ve_oti?['Normas OTI']:[], f.ve_opr?['Normativos OPR']:[]);
+      const det = f.gestiona_cuentas ? 've todo y gestiona cuentas'
+                : ve.length ? 'solo ' + ve.join(' y ') : 'sin acceso a documentos';
+      return `<option value="${esc(f.clave)}">${esc(f.nombre)} — ${esc(det)}</option>`;
+    }).join('');
+    //  Se respeta lo elegido; si ya no existe, el primero que no gestione cuentas
+    if(previo && PERFILES.some(f=>f.clave===previo)) el.value = previo;
+    else {
+      const seguro = PERFILES.find(f=>!f.gestiona_cuentas) || PERFILES[0];
+      if(seguro) el.value = seguro.clave;
+    }
   }
 
   const avisoUsr = (texto, ok) => {
@@ -1327,6 +1565,68 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
   document.getElementById('generarClave').onclick = ()=>{
     document.getElementById('nClave').value = sugerirClave();
   };
+
+  // ---------- Botones del editor de perfiles ----------
+  document.getElementById('nuevoPerfilBtn').onclick    = ()=> abrirPerfil(null);
+  document.getElementById('cancelarPerfilBtn').onclick = cerrarPerfil;
+
+  document.getElementById('perfilForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const msg = document.getElementById('perfilFormMsg');
+    const btn = document.getElementById('guardarPerfilBtn');
+    const err = t => { msg.className='form-msg err'; msg.textContent = t; };
+
+    const clave  = document.getElementById('pClave').value.trim().toLowerCase();
+    const nombre = document.getElementById('pNombre').value.trim();
+    if(!/^[a-z][a-z0-9_]{1,30}$/.test(clave))
+      return err('La clave debe empezar por letra y llevar solo minúsculas, números o guion bajo.');
+    if(!nombre) return err('El nombre visible es obligatorio.');
+
+    const fila = {
+      clave, nombre,
+      descripcion:      document.getElementById('pDesc').value.trim() || null,
+      ve_oti:           document.getElementById('pVeOti').checked,
+      ve_opr:           document.getElementById('pVeOpr').checked,
+      carga_oti:        document.getElementById('pCargaOti').checked,
+      carga_opr:        document.getElementById('pCargaOpr').checked,
+      gestiona_cuentas: document.getElementById('pCuentas').checked,
+      usa_asistente:    document.getElementById('pAsistente').checked
+    };
+
+    //  Cargar donde no se ve es incoherente: la base lo aceptaria, pero la
+    //  persona subiria documentos que luego no encuentra.
+    if(fila.carga_oti && !fila.ve_oti) return err('No se puede cargar en Normas OTI sin poder verlo.');
+    if(fila.carga_opr && !fila.ve_opr) return err('No se puede cargar en Normativos OPR sin poder verlo.');
+
+    const editando = perfilEditando;
+    //  Al modificar, la clave no viaja: es la referencia de las cuentas.
+    if(editando) delete fila.clave;
+
+    btn.disabled = true; btn.textContent = 'Guardando…';
+    msg.textContent = ''; msg.className = '';
+    const r = editando
+      ? await sb.from('perfiles_acceso').update(fila).eq('clave', editando)
+      : await sb.from('perfiles_acceso').insert(fila);
+    btn.disabled = false; btn.textContent = 'Guardar perfil';
+
+    if(r.error){
+      //  El mensaje de la base es claro cuando salta el seguro; se muestra tal cual
+      err(/duplicate key/i.test(r.error.message)
+            ? `Ya existe un perfil con la clave «${clave}».`
+            : r.error.message);
+      return;
+    }
+
+    cerrarPerfil();
+    await cargarPerfiles();
+    pintarPerfiles(); pintarUsuarios(); buildRolSelect();
+
+    //  Si el perfil tocado es el de quien esta dentro, la pantalla ya no refleja
+    //  sus permisos hasta recargar: mas vale decirlo que dejarlo descuadrado.
+    const esElMio = editando && editando === ROL;
+    avisoPerf(`Perfil «${nombre}» ${editando ? 'actualizado' : 'creado'}.` +
+      (esElMio ? ' Como es tu propio perfil, recarga la página para que la interfaz se ajuste.' : ''), true);
+  });
 
   document.getElementById('crearUsrForm').addEventListener('submit', async e=>{
     e.preventDefault();
@@ -1572,7 +1872,7 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
 
   document.getElementById('masivaForm').addEventListener('submit', async e=>{
     e.preventDefault();
-    if(!(ALCANCE[ROL] || []).length || !MASIVA.listo) return;
+    if(!(CARGA[ROL] || []).length || !MASIVA.listo) return;
     const btn = document.getElementById('mSubir');
     const tabla = document.getElementById('mFuente').value;
     const nombreFuente = (FUENTES.find(f=>f.tabla===tabla)||{}).nombre || COL_BASE;
@@ -1617,7 +1917,7 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
   // ---------- Navegación entre vistas ----------
   function showView(v){
     if(v==='usr' && !isAdmin) v = 'inv';                      // cuentas, solo admin
-    if(v==='new' && !(ALCANCE[ROL] || []).length) v = 'inv';  // sin conjunto donde cargar
+    if(v==='new' && !(CARGA[ROL] || []).length) v = 'inv';    // sin conjunto donde cargar
     const vistas = { inv:'viewInv', new:'viewNew', usr:'viewUsr' };
     const navs   = { inv:'navInv',  new:'navNew',  usr:'navUsr'  };
     Object.entries(vistas).forEach(([k,id])=> document.getElementById(id).hidden = (k!==v));
@@ -1627,7 +1927,7 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
 
   // ---------- Asistente IA flotante ----------
   function toggleChat(){
-    if(!isAdmin) return;              // reservado al administrador
+    if(!puedo('usa_asistente')) return;   // concedido por perfil
     const panel = document.getElementById('chatPanel');
     panel.hidden = !panel.hidden;
     if(!panel.hidden && !document.getElementById('chatQ').disabled) document.getElementById('chatQ').focus();
@@ -1635,7 +1935,7 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
 
   let chatDoc = null;  // documento activo para el chat
   function resetChat(d){
-    if(!isAdmin) return;
+    if(!puedo('usa_asistente')) return;   // concedido por perfil
     chatDoc = d;
     document.getElementById('chatScope').textContent = d.titulo;
     document.getElementById('chatLog').innerHTML =
@@ -1719,7 +2019,7 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
 
   document.getElementById('uploadForm').addEventListener('submit', async e=>{
     e.preventDefault();
-    if(!(ALCANCE[ROL] || []).length) return;   // sin conjunto donde cargar
+    if(!(CARGA[ROL] || []).length) return;     // sin conjunto donde cargar
     const btn = document.getElementById('uploadBtn'); const msg = document.getElementById('formMsg');
     const file = fileInput.files[0];
     if(!file){ msg.className='form-msg err'; msg.textContent='Selecciona un archivo PDF.'; return; }
