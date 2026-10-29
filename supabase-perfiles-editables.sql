@@ -86,7 +86,31 @@ on conflict (clave) do nothing;   -- si ya existen, se respetan sus cambios
 -- ---------- 3. La columna role pasa a apuntar a esta tabla ----------
 --  Antes era una lista cerrada en un CHECK; ahora es una referencia, asi
 --  que crear un perfil basta para poder asignarlo.
-alter table public.profiles drop constraint if exists profiles_role_check;
+--
+--  OJO: esa restriccion se ha llamado de dos formas a lo largo del proyecto
+--  ('profiles_role_valido' en supabase-usuarios.sql y supabase-tres-perfiles.sql,
+--  'profiles_role_check' en supabase-rol-lector.sql), de modo que la base puede
+--  tener DOS a la vez y bastaba con que sobreviviera una para seguir
+--  rechazando los perfiles nuevos. Por eso no se nombran: se retiran todas
+--  las que miren a 'role', se llamen como se llamen.
+do $limpia$
+declare r record;
+begin
+  for r in
+    select con.conname
+    from pg_constraint con
+    join pg_class     c on c.oid = con.conrelid
+    join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public' and c.relname = 'profiles'
+      and con.contype = 'c'                                   -- solo CHECK
+      and pg_get_constraintdef(con.oid) ilike '%role%'
+  loop
+    execute format('alter table public.profiles drop constraint %I', r.conname);
+    raise notice 'Retirada la restriccion %', r.conname;
+  end loop;
+end
+$limpia$;
+
 alter table public.profiles drop constraint if exists profiles_role_fk;
 alter table public.profiles add  constraint profiles_role_fk
   foreign key (role) references public.perfiles_acceso(clave)

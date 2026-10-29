@@ -1,4 +1,18 @@
 -- ============================================================
+--  SUPERADO — NO EJECUTAR. Lo reemplaza supabase-perfiles-editables.sql
+--
+--  Dos motivos:
+--    1) Nombro la restriccion 'profiles_role_check' cuando en el resto del
+--       proyecto se llama 'profiles_role_valido'. En vez de reemplazarla
+--       creaba una SEGUNDA, y la vieja seguia rechazando el rol 'lector'.
+--       Es decir: este script nunca llego a funcionar.
+--    2) Los perfiles ya no son una lista en el codigo: viven en la tabla
+--       'perfiles_acceso', donde 'lector' esta incluido de serie.
+--
+--  Se conserva por su valor de historia.
+-- ============================================================
+
+-- ============================================================
 --  Inventario Normativo SERFOR — Rol 'lector' (solo lectura)
 --
 --  Para que otra aplicacion consulte el catalogo sin poder
