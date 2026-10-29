@@ -474,27 +474,32 @@
             </div>
             <div class="field">
               <label for="uTipo">Tipo *</label>
-              <select id="uTipo" required>
-                <option value="">— Seleccionar —</option>
-                <option>Directiva</option><option>Reglamento</option><option>Ley</option>
-                <option>Decreto Supremo</option><option>Decreto Legislativo</option><option>Decreto de Urgencia</option>
-                <option>TUO</option><option>Resolucion</option><option>Ordenanza</option>
-                <option>Politica</option><option>Estrategia</option><option>Plan</option>
-                <option>Lineamientos</option><option>Guia</option><option>Manual</option>
-                <option>Procedimiento</option><option>Norma</option><option>Otros</option>
-              </select>
+              <select id="uTipo" required></select>
+              <p class="hint" style="margin:6px 0 0" id="pistaTipo"></p>
             </div>
             <div class="field">
               <label for="uEnt">Entidad</label>
               <input id="uEnt" placeholder="Ej: SERFOR, PCM, MEF…">
             </div>
             <div class="field">
-              <label for="uAnio">Año</label>
-              <input id="uAnio" type="number" min="1990" max="2100" placeholder="2026">
+              <label for="uFecha">Fecha de publicación</label>
+              <input id="uFecha" type="date">
+              <p class="hint" style="margin:6px 0 0">La que figura en el documento. El año se toma de aquí.</p>
+            </div>
+            <div class="field">
+              <label for="uOrgano">Órgano / UO Proponente</label>
+              <input id="uOrgano" list="organoList" placeholder="Ej: Gerencia General" autocomplete="off">
+              <datalist id="organoList"></datalist>
             </div>
             <div class="field">
               <label for="uEstado">Estado</label>
-              <select id="uEstado"><option>Vigente</option><option>Modificada</option><option>Derogada</option></select>
+              <select id="uEstado"><option>Vigente</option><option>Modificación</option><option>Derogada</option></select>
+            </div>
+            <div class="field" id="campoModifica" hidden>
+              <label for="uModifica">Modifica a</label>
+              <input id="uModifica" list="normaList" placeholder="Resolución del documento vigente" autocomplete="off">
+              <datalist id="normaList"></datalist>
+              <p class="hint" style="margin:6px 0 0">La resolución de la norma que este documento modifica.</p>
             </div>
             <div class="field full" id="campoFuente" hidden>
               <label for="uFuente">Guardar en</label>
@@ -505,12 +510,19 @@
               <label for="uCol">Colección</label>
               <input id="uCol" list="colList" placeholder="(opcional)" autocomplete="off">
               <datalist id="colList"></datalist>
-              <p class="hint" style="margin:6px 0 0">Sublote dentro de la tabla elegida; sirve para filtrar. Si lo dejas vacío, toma el nombre de la tabla.</p>
+              <p class="hint" style="margin:6px 0 0">Agrupación opcional para filtrar un lote dentro del conjunto —por ejemplo
+                «Fiscalización» o «Plan Anticorrupción»—, cuando varias normas se consultan juntas. Si no la necesitas, déjala vacía.</p>
             </div>
             <div class="field full">
               <label>Archivo PDF *</label>
               <label class="filedrop" id="fileDrop" for="uFile">Haz clic para elegir un PDF o arrástralo aquí</label>
               <input id="uFile" type="file" accept="application/pdf" hidden required>
+            </div>
+            <div class="field full">
+              <label>Versión en Word <span style="font-weight:400;color:var(--ink-faint)">(opcional)</span></label>
+              <label class="filedrop" id="fileDropW" for="uFileW">Haz clic para elegir un .doc o .docx</label>
+              <input id="uFileW" type="file" accept=".doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
+              <p class="hint" style="margin:6px 0 0">Si la adjuntas, el documento ofrecerá las dos descargas.</p>
             </div>
           </div>
           <div id="formMsg"></div>
@@ -755,6 +767,18 @@
     "Politica":"--t-ley","Estrategia":"--t-ley","Plan":"--t-reg","Lineamientos":"--t-reg",
     "Guia":"--t-res","Manual":"--t-res","Procedimiento":"--t-res","Norma":"--t-dir","Otros":"--t-dir"
   };
+  //  OPR pidio reducir los tipos a nueve (diapositiva 6). Esa lista esta
+  //  pensada para las normas propias del SERFOR, asi que se aplica SOLO a
+  //  Normativos OPR: en Normas OTI hay leyes, decretos supremos y TUO, y
+  //  meterlos en "Otros" perderia la clasificacion de 60 documentos.
+  const TIPOS_OPR = ["Directiva","Reglamento","Plan","Lineamiento","Guía",
+                     "Manual","Protocolo","Instructivo","Otros"];
+  const TIPOS_OTI = ["Directiva","Reglamento","Ley","Decreto Supremo","Decreto Legislativo",
+                     "Decreto de Urgencia","TUO","Resolucion","Ordenanza","Politica",
+                     "Estrategia","Plan","Lineamientos","Guia","Manual","Procedimiento",
+                     "Protocolo","Instructivo","Norma","Otros"];
+  const tiposDe = tabla => tabla === 'normativos_opr' ? TIPOS_OPR : TIPOS_OTI;
+
   const ORDEN = ["Directiva","Reglamento","Ley","Decreto Supremo","Decreto Legislativo","Decreto de Urgencia","TUO","Resolucion","Resolución","Ordenanza","Politica","Estrategia","Plan","Lineamientos","Guia","Manual","Procedimiento","Norma","Otros"];
   const esc = s => (s==null?"":String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const stCls = s => s==="Derogada"?"der":s==="Modificada"?"mod":"vig";
@@ -1099,7 +1123,8 @@
     if(fallos.length) console.warn('Fuentes con error:', fallos.join(' | '));
 
     indexarCarpetas();
-    buildFuenteSelect(); buildColTabs(); buildColList(); buildFilters(); render();
+    buildFuenteSelect();
+    sincronizarSugerencias(); buildColTabs(); buildColList(); buildFilters(); render();
   }
 
   // Colecciones (sublotes) presentes dentro de un ambito dado
@@ -1151,6 +1176,41 @@
   function sincronizarCampoCol(){
     const t = document.getElementById('uFuente').value;
     document.getElementById('campoCol').hidden = !COL_OK[t];
+    sincronizarTipos(t);
+  }
+
+  //  La lista de tipos depende del conjunto de destino
+  function sincronizarTipos(tabla){
+    const el = document.getElementById('uTipo');
+    if(!el) return;
+    const previo = el.value;
+    const lista = tiposDe(tabla || (FUENTES[0] && FUENTES[0].tabla));
+    el.innerHTML = '<option value="">— Seleccionar —</option>' +
+                   lista.map(t=>`<option>${esc(t)}</option>`).join('');
+    if(previo && lista.includes(previo)) el.value = previo;
+    const pista = document.getElementById('pistaTipo');
+    if(pista) pista.textContent = (tabla === 'normativos_opr')
+      ? 'Lista acordada con OPR para los documentos normativos del SERFOR.'
+      : 'Incluye normativa externa: leyes, decretos y resoluciones.';
+  }
+
+  //  Sugerencias de organo y de norma a modificar, sacadas de lo ya cargado
+  function sincronizarSugerencias(){
+    const orgs = [...new Set(INVENTARIO.map(d=>d.organo).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+    const dl = document.getElementById('organoList');
+    if(dl) dl.innerHTML = orgs.map(o=>`<option value="${esc(o)}">`).join('');
+    const normas = [...new Set(INVENTARIO.map(d=>d.carpeta).filter(Boolean))].sort();
+    const dn = document.getElementById('normaList');
+    if(dn) dn.innerHTML = normas.map(n=>`<option value="${esc(n)}">`).join('');
+  }
+
+  //  "Modifica a" solo tiene sentido con el estado Modificación (diapositiva 7)
+  function sincronizarModifica(){
+    const est = document.getElementById('uEstado');
+    const campo = document.getElementById('campoModifica');
+    if(!est || !campo) return;
+    campo.hidden = est.value !== 'Modificación';
+    if(campo.hidden) document.getElementById('uModifica').value = '';
   }
 
   function buildFilters(){
@@ -1361,9 +1421,11 @@
 
   // Nombre con el que se guarda el PDF. Se usa el original si lo hay, y se
   // evita el ".pdf.pdf" que salia al añadir la extension a ciegas.
-  function nombreDescarga(d){
-    const base = (d.original || d.titulo || 'documento').trim();
-    return /\.pdf$/i.test(base) ? base : base + '.pdf';
+  function nombreDescarga(d, ext){
+    ext = ext || 'pdf';
+    let base = (d.original || d.titulo || 'documento').trim();
+    base = base.replace(/\.(pdf|docx?)$/i, '');     // sin la extension que traiga
+    return base + '.' + ext;
   }
 
   async function select(key){
@@ -1394,10 +1456,28 @@
     const nombre = nombreDescarga(d);
     const urlDescarga = url + (url.includes('?') ? '&' : '?') + 'download=' + encodeURIComponent(nombre);
 
+    //  OPR pidio poder descargar tambien el Word cuando exista (diapositiva 4).
+    //  Los .docx todavia no se han cargado: el boton solo aparece en los
+    //  documentos que tengan 'archivo_word', asi que hoy no se ve en ninguno
+    //  y se ira mostrando conforme se suban.
+    let botonWord = '';
+    if(d.archivo_word){
+      const w = await sb.storage.from('documentos').createSignedUrl(d.archivo_word, 3600);
+      if(w.data && w.data.signedUrl){
+        const nw = nombreDescarga(d, 'docx');
+        const uw = w.data.signedUrl + (w.data.signedUrl.includes('?') ? '&' : '?') +
+                   'download=' + encodeURIComponent(nw);
+        botonWord = `<a class="btn ghost" href="${uw}" download="${esc(nw)}" title="Versión editable en Word">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg> Word
+        </a>`;
+      }
+    }
+
     acts.innerHTML = `
       <a class="btn" href="${urlDescarga}" download="${esc(nombre)}">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg> Descargar
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg> PDF
       </a>
+      ${botonWord}
       <a class="btn ghost" href="${url}" target="_blank" rel="noopener">Abrir en pestaña</a>`;
   }
 
@@ -2156,6 +2236,17 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
   ['dragover','dragenter'].forEach(ev=>fileDrop.addEventListener(ev,e=>{e.preventDefault();fileDrop.classList.add('has');}));
   fileDrop.addEventListener('drop',e=>{ e.preventDefault(); if(e.dataTransfer.files.length){ fileInput.files=e.dataTransfer.files; fileInput.dispatchEvent(new Event('change')); }});
 
+  //  Lo mismo para la version en Word, que es opcional
+  const fileInputW = document.getElementById('uFileW');
+  const fileDropW  = document.getElementById('fileDropW');
+  const VACIO_W = 'Haz clic para elegir un .doc o .docx';
+  fileInputW.addEventListener('change', ()=>{
+    if(fileInputW.files.length){ fileDropW.textContent = '📝 ' + fileInputW.files[0].name; fileDropW.classList.add('has'); }
+    else { fileDropW.textContent = VACIO_W; fileDropW.classList.remove('has'); }
+  });
+  ['dragover','dragenter'].forEach(ev=>fileDropW.addEventListener(ev,e=>{e.preventDefault();fileDropW.classList.add('has');}));
+  fileDropW.addEventListener('drop',e=>{ e.preventDefault(); if(e.dataTransfer.files.length){ fileInputW.files=e.dataTransfer.files; fileInputW.dispatchEvent(new Event('change')); }});
+
   function slug(s){
     return s.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-zA-Z0-9]+/g,'_').replace(/^_+|_+$/g,'').toLowerCase().slice(0,60) || 'documento';
   }
@@ -2170,6 +2261,7 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
 
     const titulo = document.getElementById('uTitulo').value.trim();
     const tablaDestino = document.getElementById('uFuente').value || (FUENTES[0] && FUENTES[0].tabla) || 'documentos';
+    const fileW = document.getElementById('uFileW').files[0] || null;
     // El prefijo no es cosmetico: la regla de storage lo usa para decidir quien
     // puede leer el archivo (ver supabase-usuarios.sql).
     const prefijo = tablaDestino === 'normativos_opr' ? 'opr_' : '';
@@ -2179,28 +2271,54 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
     const up = await sb.storage.from('documentos').upload(path, file, { contentType:'application/pdf', upsert:false });
     if(up.error){ msg.className='form-msg err'; msg.textContent='Error al subir el archivo: '+up.error.message; btn.disabled=false; btn.textContent='Guardar en la base'; return; }
 
+    // 1b) el Word, si lo hay. Si falla, se retira el PDF y no queda nada a medias.
+    let pathW = null;
+    if(fileW){
+      const extW = (fileW.name.match(/\.docx?$/i) || ['.docx'])[0];
+      pathW = `${prefijo}${slug(titulo)}_${Date.now()}${extW}`;
+      const upW = await sb.storage.from('documentos').upload(pathW, fileW, { upsert:false });
+      if(upW.error){
+        await sb.storage.from('documentos').remove([path]);
+        msg.className='form-msg err'; msg.textContent='Error al subir el Word: '+upW.error.message;
+        btn.disabled=false; btn.textContent='Guardar en la base'; return;
+      }
+    }
+
     // 2) insertar fila
+    //  La fecha ya no es la del dia de la carga: es la de publicacion que
+    //  indique quien registra (diapositiva 5). El ano se deriva de ella.
+    const fechaPub = document.getElementById('uFecha').value || null;
+    const estado = document.getElementById('uEstado').value;
     const row = {
       tipo: document.getElementById('uTipo').value,
       titulo, entidad: document.getElementById('uEnt').value.trim() || null,
-      anio: parseInt(document.getElementById('uAnio').value) || null,
-      estado: document.getElementById('uEstado').value,
-      fecha: new Date().toISOString().slice(0,10),
+      anio: fechaPub ? parseInt(fechaPub.slice(0,4)) : null,
+      estado,
+      fecha: fechaPub,
+      organo: document.getElementById('uOrgano').value.trim() || null,
+      modifica_a: estado === 'Modificación'
+                    ? (document.getElementById('uModifica').value.trim() || null) : null,
       kb: Math.round(file.size/1024),
       archivo: path, original: file.name, created_by: currentUser.id
     };
+    if(pathW){ row.archivo_word = pathW; row.kb_word = Math.round(fileW.size/1024); }
     const tabla = tablaDestino;
     const nombreFuente = (FUENTES.find(f=>f.tabla===tabla)||{}).nombre || COL_BASE;
     if(COL_OK[tabla]) row.coleccion = document.getElementById('uCol').value.trim() || nombreFuente;
     const ins = await sb.from(tabla).insert(row);
     if(ins.error){
-      await sb.storage.from('documentos').remove([path]); // revertir archivo huérfano
+      //  Revertir TODO lo subido, no solo el PDF: si quedara el Word suelto
+      //  seria un archivo huerfano que nadie encuentra ni puede borrar.
+      await sb.storage.from('documentos').remove(pathW ? [path, pathW] : [path]);
       msg.className='form-msg err'; msg.textContent='Error al registrar: '+ins.error.message;
       btn.disabled=false; btn.textContent='Guardar en la base'; return;
     }
 
     msg.className='form-msg ok'; msg.textContent='✅ Documento agregado a la base.';
-    e.target.reset(); fileInput.dispatchEvent(new Event('change'));
+    e.target.reset();
+    fileInput.dispatchEvent(new Event('change'));
+    fileInputW.dispatchEvent(new Event('change'));
+    sincronizarModifica();
     btn.disabled=false; btn.textContent='Guardar en la base';
     await loadDocs();
     setTimeout(()=>showView('inv'), 900);
@@ -2239,6 +2357,9 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
     document.getElementById('fFechaX').hidden = true; render();
   };
   document.getElementById('fOrgano').onchange = e=>{ state.organo=e.target.value; render(); };
+  //  El campo "Modifica a" aparece y desaparece con el estado
+  const selEstado = document.getElementById('uEstado');
+  if(selEstado) selEstado.onchange = sincronizarModifica;
   document.getElementById('fTipo').onchange = e=>{ state.tipo=e.target.value; render(); };
   document.getElementById('fEnt').onchange  = e=>{ state.ent=e.target.value; render(); };
   document.getElementById('fYear').onchange = e=>{ state.year=e.target.value; render(); };
