@@ -554,13 +554,21 @@
             <tr><td>titulo</td><td class="oblig">Sí</td><td>Denominación de la norma.</td></tr>
             <tr><td>tipo</td><td class="oblig">Sí</td><td id="tiposValidos">—</td></tr>
             <tr><td>entidad</td><td>No</td><td>Ej: SERFOR, MIDAGRI, PCM.</td></tr>
-            <tr><td>anio</td><td>No</td><td>Cuatro cifras, entre 1990 y 2100.</td></tr>
-            <tr><td>estado</td><td>No</td><td>Vigente, Modificada o Derogada. Vacío = Vigente.</td></tr>
-            <tr><td>fecha</td><td>No</td><td>Fecha de la norma, como <code>AAAA-MM-DD</code>.</td></tr>
-            <tr><td>carpeta</td><td>No</td><td>Número de la norma. Agrupa varios PDF bajo una misma norma.</td></tr>
+            <tr><td>fecha</td><td>No</td><td>Fecha de publicación, como <code>AAAA-MM-DD</code>. De aquí sale el año.</td></tr>
+            <tr><td>estado</td><td>No</td><td>Vigente, Modificación o Derogada. Vacío = Vigente.</td></tr>
+            <tr><td>organo</td><td>No</td><td>Órgano o unidad orgánica proponente. Ej: Gerencia General.</td></tr>
+            <tr><td>carpeta</td><td>No</td><td>Número de la resolución. <b>Es lo que enlaza varios PDF bajo una misma norma.</b></td></tr>
             <tr><td>parte</td><td>No</td><td>Resolucion, Documento, Anexo o Expediente. Exige <code>carpeta</code>.</td></tr>
+            <tr><td>modifica_a</td><td>No</td><td>Resolución de la norma que se modifica. Obligatoria si el estado es <b>Modificación</b>.</td></tr>
           </tbody>
         </table>
+
+        <p class="hint" style="margin-top:14px"><b>Cómo se enlaza cada archivo con su norma.</b>
+          Si una norma tiene varios PDF —la resolución, el documento normativo y sus anexos—,
+          se pone <b>una fila por archivo</b> y todas llevan el <b>mismo valor en <code>carpeta</code></b>
+          (el número de la resolución). La columna <code>parte</code> dice qué papel cumple cada uno.
+          Así quedan agrupados y desplegables en el inventario. Un documento suelto deja
+          <code>carpeta</code> y <code>parte</code> vacías.</p>
         </div>
 
         <div class="form-grid">
@@ -1161,16 +1169,36 @@
   function buildFuenteSelect(){
     const el = document.getElementById('uFuente');
     const disponibles = FUENTES.filter(f=>GRUPOS.includes(f.nombre));
+    //  OJO: rehacer el innerHTML de un <select> devuelve el valor a la primera
+    //  opcion. Hay que recordarlo y reponerlo, o cambiar de destino no surte
+    //  efecto y la lista de tipos se queda en la del conjunto equivocado.
+    const previoU = el.value;
     el.innerHTML = disponibles.map(f=>`<option value="${esc(f.tabla)}">${esc(f.nombre)}</option>`).join('');
+    if(previoU && disponibles.some(f=>f.tabla===previoU)) el.value = previoU;
     document.getElementById('campoFuente').hidden = disponibles.length < 2;
     el.onchange = sincronizarCampoCol;
     sincronizarCampoCol();
 
     // Mismo destino para la carga masiva
     const em = document.getElementById('mFuente');
-    if(em) em.innerHTML = disponibles.map(f=>`<option value="${esc(f.tabla)}">${esc(f.nombre)}</option>`).join('');
+    if(em){
+      const previoM = em.value;
+      em.innerHTML = disponibles.map(f=>`<option value="${esc(f.tabla)}">${esc(f.nombre)}</option>`).join('');
+      if(previoM && disponibles.some(f=>f.tabla===previoM)) em.value = previoM;
+      //  OPR pregunto "¿existen otros tipos de guardar?" al ver un desplegable
+      //  con una sola opcion (diapositiva 8). Si no hay donde elegir, estorba.
+      const campo = em.closest('.field');
+      if(campo) campo.hidden = disponibles.length < 2;
+    }
+    //  Los tipos que admite la carga masiva son los del conjunto de destino,
+    //  no la lista global: con el destino en OPR solo valen los nueve suyos.
     const tv = document.getElementById('tiposValidos');
-    if(tv) tv.textContent = 'Uno de: ' + ORDEN.join(', ') + '.';
+    if(tv){
+      const dest = (em && em.value) || (disponibles[0] && disponibles[0].tabla);
+      tv.textContent = 'Uno de: ' + tiposDe(dest).join(', ') + '.';
+    }
+    //  Y si se cambia de destino, la lista se actualiza sola
+    if(em) em.onchange = buildFuenteSelect;
   }
   // Solo se ofrece Coleccion si la tabla destino tiene esa columna
   function sincronizarCampoCol(){
@@ -1833,8 +1861,11 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
   //  El formato NO es una sugerencia: se valida entero y, mientras haya un solo
   //  error, el boton de subir sigue deshabilitado. Asi no entran a la base
   //  documentos a medias ni PDF huerfanos.
-  const COLUMNAS = ['archivo','titulo','tipo','entidad','anio','estado','fecha','carpeta','parte'];
-  const ESTADOS  = ['Vigente','Modificada','Derogada'];
+  //  'organo' y 'modifica_a' son de las observaciones de OPR (diapositivas 7 y 8).
+  //  'anio' sale de 'fecha', asi que deja de pedirse: una cifra menos que cuadrar.
+  const COLUMNAS = ['archivo','titulo','tipo','entidad','fecha','estado','organo',
+                    'carpeta','parte','modifica_a'];
+  const ESTADOS  = ['Vigente','Modificación','Derogada'];
   const PARTES   = ['Resolucion','Documento','Anexo','Expediente'];
   let MASIVA = { filas: [], pdfs: new Map(), listo: false };
 
@@ -1866,15 +1897,24 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
   }
 
   function plantillaCsv(){
-    const ej1 = ['DIRECTIVA-001-2026.pdf','Directiva General N 001-2026 sobre gestion documental','Directiva','SERFOR','2026','Vigente','2026-03-14','',''];
-    const ej2 = ['RES-045-2026.pdf','Aprueban los Lineamientos de fiscalizacion','Lineamientos','SERFOR','2026','Vigente','2026-05-02','RDE N 045-2026-MIDAGRI-SERFOR-DE','Resolucion'];
-    const ej3 = ['LIN-045-2026.pdf','Lineamientos de fiscalizacion','Lineamientos','SERFOR','2026','Vigente','2026-05-02','RDE N 045-2026-MIDAGRI-SERFOR-DE','Documento'];
+    //  Los tres ejemplos ensenan lo que mas se pregunta: como se enlaza cada
+    //  archivo con su norma. Lo hace la columna 'carpeta' —el numero de
+    //  resolucion, igual en todas las filas de la misma norma— y 'parte' dice
+    //  que papel cumple cada archivo.
+    const ej1 = ['DIRECTIVA-001-2026.pdf','Directiva General N 001-2026 sobre gestion documental','Directiva','SERFOR','2026-03-14','Vigente','Gerencia General','','',''];
+    const ej2 = ['RES-045-2026.pdf','RDE N 045-2026-MIDAGRI-SERFOR-DE','Lineamiento','SERFOR','2026-05-02','Vigente','Direccion Ejecutiva','RDE N 045-2026-MIDAGRI-SERFOR-DE','Resolucion',''];
+    const ej3 = ['LIN-045-2026.pdf','Lineamientos de fiscalizacion','Lineamiento','SERFOR','2026-05-02','Vigente','Direccion Ejecutiva','RDE N 045-2026-MIDAGRI-SERFOR-DE','Documento',''];
+    const ej4 = ['ANEXO-045-2026.pdf','Anexo 1 - Formatos','Lineamiento','SERFOR','2026-05-02','Vigente','Direccion Ejecutiva','RDE N 045-2026-MIDAGRI-SERFOR-DE','Anexo',''];
     const lineas = [
       COLUMNAS.join(';'),
       '# Las lineas que empiezan por # son ejemplos y NO se cargan. Borralas o dejalas.',
+      '# El primer ejemplo es un documento suelto. Los tres siguientes son UNA misma',
+      '# norma repartida en tres archivos: comparten el valor de carpeta y se',
+      '# diferencian por parte (Resolucion / Documento / Anexo).',
       '# ' + ej1.join(';'),
       '# ' + ej2.join(';'),
-      '# ' + ej3.join(';')
+      '# ' + ej3.join(';'),
+      '# ' + ej4.join(';')
     ];
     // BOM para que Excel respete las tildes
     return '\uFEFF' + lineas.join('\r\n') + '\r\n';
@@ -1954,7 +1994,11 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
     }
     const col = {}; COLUMNAS.forEach(c => col[c] = cab.indexOf(c));
 
-    const tiposOk = ORDEN.map(t=>t.toLowerCase());
+    //  El conjunto de destino decide que tipos valen: OPR tiene la lista corta
+    //  que acordo con nosotros, Normas OTI conserva la larga.
+    const destinoMasiva = (document.getElementById('mFuente') || {}).value
+                          || (FUENTES[0] && FUENTES[0].tabla);
+    const tiposOk = tiposDe(destinoMasiva).map(t=>t.toLowerCase());
     const vistos = new Set();
     const filasOk = [];
 
@@ -1980,10 +2024,6 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
       if(!pdf) err(`no seleccionaste el PDF <b>${esc(archivo)}</b>.`);
       else if(pdf.size > 50*1024*1024) err(`<b>${esc(archivo)}</b> pesa ${(pdf.size/1048576).toFixed(1)} MB y el limite es 50 MB.`);
 
-      const anio = v('anio');
-      if(anio && !/^\d{4}$/.test(anio)) err(`el anio <b>${esc(anio)}</b> no tiene cuatro cifras.`);
-      else if(anio && (+anio < 1990 || +anio > 2100)) err(`el anio <b>${esc(anio)}</b> esta fuera de rango.`);
-
       const estado = v('estado');
       if(estado && !ESTADOS.some(e => e.toLowerCase() === estado.toLowerCase()))
         err(`el estado <b>${esc(estado)}</b> no es valido.`);
@@ -1996,10 +2036,20 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
         err(`la parte <b>${esc(parte)}</b> no es valida.`);
       if(parte && !carpeta) err('si indicas <b>parte</b> tienes que indicar <b>carpeta</b>.');
 
+      //  'modifica_a' solo tiene sentido con el estado Modificación, y al reves:
+      //  marcar una modificacion sin decir que modifica deja el dato cojo.
+      const modifica = v('modifica_a');
+      if(modifica && estado.toLowerCase() !== 'modificación' && estado.toLowerCase() !== 'modificacion')
+        err('<b>modifica_a</b> solo se usa cuando el estado es <b>Modificación</b>.');
+      if(!modifica && (estado.toLowerCase() === 'modificación' || estado.toLowerCase() === 'modificacion'))
+        err('si el estado es <b>Modificación</b> hay que indicar <b>modifica_a</b>.');
+
       filasOk.push({ archivo, titulo, tipo, entidad:v('entidad')||null,
-                     anio: anio ? +anio : null,
+                     anio: fecha ? +fecha.slice(0,4) : null,   // el ano sale de la fecha
                      estado: estado || 'Vigente',
                      fecha: fecha || null,
+                     organo: v('organo') || null,
+                     modifica_a: modifica || null,
                      carpeta: carpeta || null, parte: parte || null, pdf });
     }
 
