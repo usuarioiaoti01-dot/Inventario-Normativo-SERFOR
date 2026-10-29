@@ -791,7 +791,7 @@
   document.getElementById('logoutBtn').onclick = async ()=>{ await sb.auth.signOut(); };
 
   // ---------- Entrar a la app ----------
-  // Los perfiles ya no estan escritos aqui: viven en la tabla "perfiles" y se
+  // Los perfiles ya no estan escritos aqui: viven en la tabla "perfiles_acceso" y se
   // administran desde la pantalla Usuarios (supabase-perfiles-editables.sql).
   // Lo de aqui es solo para la interfaz; quien manda de verdad son las reglas
   // RLS, que leen esa misma tabla.
@@ -817,7 +817,7 @@
   }
 
   async function cargarPerfiles(){
-    const { data, error } = await sb.from('perfiles')
+    const { data, error } = await sb.from('perfiles_acceso')
       .select('clave,nombre,descripcion,ve_oti,ve_opr,carga_oti,carga_opr,gestiona_cuentas,usa_asistente,del_sistema,orden')
       .order('orden').order('clave');
     if(error){ indexarPerfiles([]); return error.message; }
@@ -1481,7 +1481,7 @@
     if(!confirm(`¿Eliminar el perfil «${f.nombre}»?
 
 Las cuentas que lo tengan quedarían sin acceso. Esta acción no se puede deshacer.`)) return;
-    const { error } = await sb.from('perfiles').delete().eq('clave', clave);
+    const { error } = await sb.from('perfiles_acceso').delete().eq('clave', clave);
     if(error){ avisoPerf(error.message, false); return; }
     await cargarPerfiles();
     pintarPerfiles(); pintarUsuarios(); buildRolSelect();
@@ -1605,8 +1605,8 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
     btn.disabled = true; btn.textContent = 'Guardando…';
     msg.textContent = ''; msg.className = '';
     const r = editando
-      ? await sb.from('perfiles').update(fila).eq('clave', editando)
-      : await sb.from('perfiles').insert(fila);
+      ? await sb.from('perfiles_acceso').update(fila).eq('clave', editando)
+      : await sb.from('perfiles_acceso').insert(fila);
     btn.disabled = false; btn.textContent = 'Guardar perfil';
 
     if(r.error){

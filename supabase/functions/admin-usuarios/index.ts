@@ -22,7 +22,7 @@ const cors = {
 const json = (obj: unknown, status = 200) =>
   new Response(JSON.stringify(obj), { status, headers: { ...cors, "content-type": "application/json" } });
 
-// Los perfiles ya no estan escritos aqui: se leen de la tabla "perfiles"
+// Los perfiles ya no estan escritos aqui: se leen de la tabla "perfiles_acceso"
 // (ver supabase-perfiles-editables.sql). Crear un perfil desde la pantalla
 // basta para poder asignarlo, sin volver a desplegar esta funcion.
 //
@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
     // 2) Los perfiles vigentes, tal como estan en la base. De aqui sale tanto
     //    que roles son validos como cual de ellos gestiona cuentas.
     const { data: perfiles, error: errPerf } = await admin
-      .from("perfiles").select("clave, nombre, gestiona_cuentas");
+      .from("perfiles_acceso").select("clave, nombre, gestiona_cuentas");
     if (errPerf || !perfiles || !perfiles.length) {
       return json({ error: "No se pudo leer la tabla de perfiles. Ejecuta supabase-perfiles-editables.sql." }, 500);
     }
