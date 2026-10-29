@@ -426,11 +426,14 @@
       <select class="filter" id="fTipo"><option value="">Todo tipo</option></select>
       <select class="filter" id="fEnt"><option value="">Toda entidad</option></select>
       <select class="filter" id="fYear"><option value="">Todos los años</option></select>
+      <select class="filter" id="fOrgano"><option value="">Todo órgano / UO</option></select>
       <select class="filter" id="fCol" hidden><option value="">Toda colección</option></select>
       <span class="fecha-caja">
-        <label for="fFecha">Día</label>
-        <input class="filter" type="date" id="fFecha" title="Mostrar solo los documentos de esa fecha">
-        <button class="btn-limpiar" id="fFechaX" type="button" title="Quitar el filtro de fecha" hidden>✕</button>
+        <label for="fDesde">Desde</label>
+        <input class="filter" type="date" id="fDesde" title="Publicados a partir de esta fecha">
+        <label for="fHasta">hasta</label>
+        <input class="filter" type="date" id="fHasta" title="Publicados hasta esta fecha">
+        <button class="btn-limpiar" id="fFechaX" type="button" title="Quitar el filtro de fechas" hidden>✕</button>
       </span>
       <span class="count-pill" id="countPill"></span>
     </div>
@@ -471,27 +474,32 @@
             </div>
             <div class="field">
               <label for="uTipo">Tipo *</label>
-              <select id="uTipo" required>
-                <option value="">— Seleccionar —</option>
-                <option>Directiva</option><option>Reglamento</option><option>Ley</option>
-                <option>Decreto Supremo</option><option>Decreto Legislativo</option><option>Decreto de Urgencia</option>
-                <option>TUO</option><option>Resolucion</option><option>Ordenanza</option>
-                <option>Politica</option><option>Estrategia</option><option>Plan</option>
-                <option>Lineamientos</option><option>Guia</option><option>Manual</option>
-                <option>Procedimiento</option><option>Norma</option><option>Otros</option>
-              </select>
+              <select id="uTipo" required></select>
+              <p class="hint" style="margin:6px 0 0" id="pistaTipo"></p>
             </div>
             <div class="field">
               <label for="uEnt">Entidad</label>
               <input id="uEnt" placeholder="Ej: SERFOR, PCM, MEF…">
             </div>
             <div class="field">
-              <label for="uAnio">Año</label>
-              <input id="uAnio" type="number" min="1990" max="2100" placeholder="2026">
+              <label for="uFecha">Fecha de publicación</label>
+              <input id="uFecha" type="date">
+              <p class="hint" style="margin:6px 0 0">La que figura en el documento. El año se toma de aquí.</p>
+            </div>
+            <div class="field">
+              <label for="uOrgano">Órgano / UO Proponente</label>
+              <input id="uOrgano" list="organoList" placeholder="Ej: Gerencia General" autocomplete="off">
+              <datalist id="organoList"></datalist>
             </div>
             <div class="field">
               <label for="uEstado">Estado</label>
-              <select id="uEstado"><option>Vigente</option><option>Modificada</option><option>Derogada</option></select>
+              <select id="uEstado"><option>Vigente</option><option>Modificación</option><option>Derogada</option></select>
+            </div>
+            <div class="field" id="campoModifica" hidden>
+              <label for="uModifica">Modifica a</label>
+              <input id="uModifica" list="normaList" placeholder="Resolución del documento vigente" autocomplete="off">
+              <datalist id="normaList"></datalist>
+              <p class="hint" style="margin:6px 0 0">La resolución de la norma que este documento modifica.</p>
             </div>
             <div class="field full" id="campoFuente" hidden>
               <label for="uFuente">Guardar en</label>
@@ -502,12 +510,19 @@
               <label for="uCol">Colección</label>
               <input id="uCol" list="colList" placeholder="(opcional)" autocomplete="off">
               <datalist id="colList"></datalist>
-              <p class="hint" style="margin:6px 0 0">Sublote dentro de la tabla elegida; sirve para filtrar. Si lo dejas vacío, toma el nombre de la tabla.</p>
+              <p class="hint" style="margin:6px 0 0">Agrupación opcional para filtrar un lote dentro del conjunto —por ejemplo
+                «Fiscalización» o «Plan Anticorrupción»—, cuando varias normas se consultan juntas. Si no la necesitas, déjala vacía.</p>
             </div>
             <div class="field full">
               <label>Archivo PDF *</label>
               <label class="filedrop" id="fileDrop" for="uFile">Haz clic para elegir un PDF o arrástralo aquí</label>
               <input id="uFile" type="file" accept="application/pdf" hidden required>
+            </div>
+            <div class="field full">
+              <label>Versión en Word <span style="font-weight:400;color:var(--ink-faint)">(opcional)</span></label>
+              <label class="filedrop" id="fileDropW" for="uFileW">Haz clic para elegir un .doc o .docx</label>
+              <input id="uFileW" type="file" accept=".doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
+              <p class="hint" style="margin:6px 0 0">Si la adjuntas, el documento ofrecerá las dos descargas.</p>
             </div>
           </div>
           <div id="formMsg"></div>
@@ -539,13 +554,21 @@
             <tr><td>titulo</td><td class="oblig">Sí</td><td>Denominación de la norma.</td></tr>
             <tr><td>tipo</td><td class="oblig">Sí</td><td id="tiposValidos">—</td></tr>
             <tr><td>entidad</td><td>No</td><td>Ej: SERFOR, MIDAGRI, PCM.</td></tr>
-            <tr><td>anio</td><td>No</td><td>Cuatro cifras, entre 1990 y 2100.</td></tr>
-            <tr><td>estado</td><td>No</td><td>Vigente, Modificada o Derogada. Vacío = Vigente.</td></tr>
-            <tr><td>fecha</td><td>No</td><td>Fecha de la norma, como <code>AAAA-MM-DD</code>.</td></tr>
-            <tr><td>carpeta</td><td>No</td><td>Número de la norma. Agrupa varios PDF bajo una misma norma.</td></tr>
+            <tr><td>fecha</td><td>No</td><td>Fecha de publicación, como <code>AAAA-MM-DD</code>. De aquí sale el año.</td></tr>
+            <tr><td>estado</td><td>No</td><td>Vigente, Modificación o Derogada. Vacío = Vigente.</td></tr>
+            <tr><td>organo</td><td>No</td><td>Órgano o unidad orgánica proponente. Ej: Gerencia General.</td></tr>
+            <tr><td>carpeta</td><td>No</td><td>Número de la resolución. <b>Es lo que enlaza varios PDF bajo una misma norma.</b></td></tr>
             <tr><td>parte</td><td>No</td><td>Resolucion, Documento, Anexo o Expediente. Exige <code>carpeta</code>.</td></tr>
+            <tr><td>modifica_a</td><td>No</td><td>Resolución de la norma que se modifica. Obligatoria si el estado es <b>Modificación</b>.</td></tr>
           </tbody>
         </table>
+
+        <p class="hint" style="margin-top:14px"><b>Cómo se enlaza cada archivo con su norma.</b>
+          Si una norma tiene varios PDF —la resolución, el documento normativo y sus anexos—,
+          se pone <b>una fila por archivo</b> y todas llevan el <b>mismo valor en <code>carpeta</code></b>
+          (el número de la resolución). La columna <code>parte</code> dice qué papel cumple cada uno.
+          Así quedan agrupados y desplegables en el inventario. Un documento suelto deja
+          <code>carpeta</code> y <code>parte</code> vacías.</p>
         </div>
 
         <div class="form-grid">
@@ -752,6 +775,18 @@
     "Politica":"--t-ley","Estrategia":"--t-ley","Plan":"--t-reg","Lineamientos":"--t-reg",
     "Guia":"--t-res","Manual":"--t-res","Procedimiento":"--t-res","Norma":"--t-dir","Otros":"--t-dir"
   };
+  //  OPR pidio reducir los tipos a nueve (diapositiva 6). Esa lista esta
+  //  pensada para las normas propias del SERFOR, asi que se aplica SOLO a
+  //  Normativos OPR: en Normas OTI hay leyes, decretos supremos y TUO, y
+  //  meterlos en "Otros" perderia la clasificacion de 60 documentos.
+  const TIPOS_OPR = ["Directiva","Reglamento","Plan","Lineamiento","Guía",
+                     "Manual","Protocolo","Instructivo","Otros"];
+  const TIPOS_OTI = ["Directiva","Reglamento","Ley","Decreto Supremo","Decreto Legislativo",
+                     "Decreto de Urgencia","TUO","Resolucion","Ordenanza","Politica",
+                     "Estrategia","Plan","Lineamientos","Guia","Manual","Procedimiento",
+                     "Protocolo","Instructivo","Norma","Otros"];
+  const tiposDe = tabla => tabla === 'normativos_opr' ? TIPOS_OPR : TIPOS_OTI;
+
   const ORDEN = ["Directiva","Reglamento","Ley","Decreto Supremo","Decreto Legislativo","Decreto de Urgencia","TUO","Resolucion","Resolución","Ordenanza","Politica","Estrategia","Plan","Lineamientos","Guia","Manual","Procedimiento","Norma","Otros"];
   const esc = s => (s==null?"":String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const stCls = s => s==="Derogada"?"der":s==="Modificada"?"mod":"vig";
@@ -772,7 +807,11 @@
   ];
   const COL_BASE = "Normas OTI";   // coleccion de los documentos ya cargados
   // grupo:"" = todas las fuentes  |  col:"" = todas las colecciones de la fuente activa
-  const state = { q:"", tipo:"", ent:"", year:"", grupo:"", col:"", fecha:"", active:null, abiertas:new Set() };
+  //  'desde'/'hasta' sustituyen al dia suelto: OPR pidio poder ver un rango
+  //  (diapositiva 1). 'organo' es el filtro por Organo/UO Proponente, que OPR
+  //  reclamo tres veces (diapositivas 1, 2 y 7).
+  const state = { q:"", tipo:"", ent:"", year:"", grupo:"", col:"",
+                  desde:"", hasta:"", organo:"", active:null, abiertas:new Set() };
 
   // ---------- Arranque ----------
   function boot(){
@@ -784,12 +823,21 @@
     // corre, y cualquier consulta que necesite la sesion se queda esperando
     // para siempre (el usuario se quedaba en "Ingresando..."). Con setTimeout
     // el trabajo se hace ya fuera de ese contexto.
-    sb.auth.getSession().then(({data})=>{
-      setTimeout(()=> data.session ? entrar(data.session) : mostrarLogin(), 0);
-    });
-    sb.auth.onAuthStateChange((_e,session)=>{
+    //
+    //  Y OJO TAMBIEN con reentrar: Supabase emite TOKEN_REFRESHED cada vez que
+    //  la pestana recupera el foco. Si eso vuelve a ejecutar entrar(), la
+    //  pantalla salta al inventario y se pierde lo que se estuviera haciendo
+    //  —un formulario a medias, una busqueda—. Lo noto OPR (diapositiva 10).
+    //  La solucion es actuar solo cuando CAMBIA quien esta dentro.
+    let quienEstaDentro = undefined;        // undefined = aun no se sabe
+    const atender = (session) => {
+      const uid = (session && session.user && session.user.id) || null;
+      if (uid === quienEstaDentro) return;  // mismo usuario: no se rehace nada
+      quienEstaDentro = uid;
       setTimeout(()=> session ? entrar(session) : mostrarLogin(), 0);
-    });
+    };
+    sb.auth.getSession().then(({data})=> atender(data.session));
+    sb.auth.onAuthStateChange((_e, session)=> atender(session));
   }
   function show(id){ ['setupScreen','loginScreen','claveScreen','app'].forEach(x=>document.getElementById(x).hidden = (x!==id)); }
 
@@ -892,10 +940,11 @@
     indexarPerfiles([]);          // los perfiles tambien se olvidan al salir
     CARPETAS = new Map();
     Object.keys(COL_OK).forEach(k => delete COL_OK[k]);
-    Object.assign(state, { q:"", tipo:"", ent:"", year:"", grupo:"", col:"", fecha:"", active:null });
+    Object.assign(state, { q:"", tipo:"", ent:"", year:"", grupo:"", col:"",
+                           desde:"", hasta:"", organo:"", active:null });
     state.abiertas.clear();
 
-    ['q','fTipo','fEnt','fYear','fCol','fFecha'].forEach(id=>{
+    ['q','fTipo','fEnt','fYear','fOrgano','fCol','fDesde','fHasta'].forEach(id=>{
       const el = document.getElementById(id); if(el) el.value = '';
     });
     const x = document.getElementById('fFechaX'); if(x) x.hidden = true;
@@ -1002,14 +1051,12 @@
   // Un Especialista ve "Inventario OPR"; el perfil Normas OTI, "Inventario
   // Normas OTI"; un Administrador, que ve los dos conjuntos, solo "Inventario".
   // Fijarlo a mano hacia que a unos les mintiera el rotulo.
+  //  OPR pidio que ponga solo "Inventario" (diapositiva 1). Antes el rotulo
+  //  se adaptaba al perfil ("Inventario OPR") para no mentir sobre lo que se
+  //  esta viendo; eso ahora lo dicen las pestanas de conjunto, que ya
+  //  muestran cuales estan disponibles y con cuantos documentos.
   function rotularInventario(){
-    const btn = document.getElementById('navInv');
-    if(GRUPOS.length === 1){
-      const f = FUENTES.find(x => x.nombre === GRUPOS[0]);
-      btn.textContent = 'Inventario ' + ((f && f.corto) || GRUPOS[0]);
-    } else {
-      btn.textContent = 'Inventario';
-    }
+    document.getElementById('navInv').textContent = 'Inventario';
   }
 
   // ---------- Cambio de clave obligatorio ----------
@@ -1084,7 +1131,8 @@
     if(fallos.length) console.warn('Fuentes con error:', fallos.join(' | '));
 
     indexarCarpetas();
-    buildFuenteSelect(); buildColTabs(); buildColList(); buildFilters(); render();
+    buildFuenteSelect();
+    sincronizarSugerencias(); buildColTabs(); buildColList(); buildFilters(); render();
   }
 
   // Colecciones (sublotes) presentes dentro de un ambito dado
@@ -1121,21 +1169,76 @@
   function buildFuenteSelect(){
     const el = document.getElementById('uFuente');
     const disponibles = FUENTES.filter(f=>GRUPOS.includes(f.nombre));
+    //  OJO: rehacer el innerHTML de un <select> devuelve el valor a la primera
+    //  opcion. Hay que recordarlo y reponerlo, o cambiar de destino no surte
+    //  efecto y la lista de tipos se queda en la del conjunto equivocado.
+    const previoU = el.value;
     el.innerHTML = disponibles.map(f=>`<option value="${esc(f.tabla)}">${esc(f.nombre)}</option>`).join('');
+    if(previoU && disponibles.some(f=>f.tabla===previoU)) el.value = previoU;
     document.getElementById('campoFuente').hidden = disponibles.length < 2;
     el.onchange = sincronizarCampoCol;
     sincronizarCampoCol();
 
     // Mismo destino para la carga masiva
     const em = document.getElementById('mFuente');
-    if(em) em.innerHTML = disponibles.map(f=>`<option value="${esc(f.tabla)}">${esc(f.nombre)}</option>`).join('');
+    if(em){
+      const previoM = em.value;
+      em.innerHTML = disponibles.map(f=>`<option value="${esc(f.tabla)}">${esc(f.nombre)}</option>`).join('');
+      if(previoM && disponibles.some(f=>f.tabla===previoM)) em.value = previoM;
+      //  OPR pregunto "¿existen otros tipos de guardar?" al ver un desplegable
+      //  con una sola opcion (diapositiva 8). Si no hay donde elegir, estorba.
+      const campo = em.closest('.field');
+      if(campo) campo.hidden = disponibles.length < 2;
+    }
+    //  Los tipos que admite la carga masiva son los del conjunto de destino,
+    //  no la lista global: con el destino en OPR solo valen los nueve suyos.
     const tv = document.getElementById('tiposValidos');
-    if(tv) tv.textContent = 'Uno de: ' + ORDEN.join(', ') + '.';
+    if(tv){
+      const dest = (em && em.value) || (disponibles[0] && disponibles[0].tabla);
+      tv.textContent = 'Uno de: ' + tiposDe(dest).join(', ') + '.';
+    }
+    //  Y si se cambia de destino, la lista se actualiza sola
+    if(em) em.onchange = buildFuenteSelect;
   }
   // Solo se ofrece Coleccion si la tabla destino tiene esa columna
   function sincronizarCampoCol(){
     const t = document.getElementById('uFuente').value;
     document.getElementById('campoCol').hidden = !COL_OK[t];
+    sincronizarTipos(t);
+  }
+
+  //  La lista de tipos depende del conjunto de destino
+  function sincronizarTipos(tabla){
+    const el = document.getElementById('uTipo');
+    if(!el) return;
+    const previo = el.value;
+    const lista = tiposDe(tabla || (FUENTES[0] && FUENTES[0].tabla));
+    el.innerHTML = '<option value="">— Seleccionar —</option>' +
+                   lista.map(t=>`<option>${esc(t)}</option>`).join('');
+    if(previo && lista.includes(previo)) el.value = previo;
+    const pista = document.getElementById('pistaTipo');
+    if(pista) pista.textContent = (tabla === 'normativos_opr')
+      ? 'Lista acordada con OPR para los documentos normativos del SERFOR.'
+      : 'Incluye normativa externa: leyes, decretos y resoluciones.';
+  }
+
+  //  Sugerencias de organo y de norma a modificar, sacadas de lo ya cargado
+  function sincronizarSugerencias(){
+    const orgs = [...new Set(INVENTARIO.map(d=>d.organo).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+    const dl = document.getElementById('organoList');
+    if(dl) dl.innerHTML = orgs.map(o=>`<option value="${esc(o)}">`).join('');
+    const normas = [...new Set(INVENTARIO.map(d=>d.carpeta).filter(Boolean))].sort();
+    const dn = document.getElementById('normaList');
+    if(dn) dn.innerHTML = normas.map(n=>`<option value="${esc(n)}">`).join('');
+  }
+
+  //  "Modifica a" solo tiene sentido con el estado Modificación (diapositiva 7)
+  function sincronizarModifica(){
+    const est = document.getElementById('uEstado');
+    const campo = document.getElementById('campoModifica');
+    if(!est || !campo) return;
+    campo.hidden = est.value !== 'Modificación';
+    if(campo.hidden) document.getElementById('uModifica').value = '';
   }
 
   function buildFilters(){
@@ -1143,9 +1246,14 @@
     const tipos = [...new Set(ambito.map(d=>d.tipo).filter(Boolean))].sort((a,b)=>(ORDEN.indexOf(a)-ORDEN.indexOf(b)));
     const ents  = [...new Set(ambito.map(d=>d.entidad).filter(Boolean))].sort();
     const years = [...new Set(ambito.map(d=>d.anio).filter(Boolean))].sort((a,b)=>b-a);
+    const organos = [...new Set(ambito.map(d=>d.organo).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
     fill('fTipo','Todo tipo',tipos,'tipo');
     fill('fEnt','Toda entidad',ents,'ent');
     fill('fYear','Todos los años',years,'year');
+    fill('fOrgano','Todo órgano / UO',organos,'organo');
+    //  Mientras no haya ningun documento con organo asignado, el filtro
+    //  estorba mas que ayuda: se oculta hasta que existan datos.
+    document.getElementById('fOrgano').hidden = organos.length === 0;
 
     // La coleccion es un sublote dentro de la fuente: solo se ofrece si hay mas de uno
     const cols = colecciones(ambito);
@@ -1177,13 +1285,20 @@
       if(state.tipo && d.tipo!==state.tipo) return false;
       if(state.ent && d.entidad!==state.ent) return false;
       if(state.year && String(d.anio)!==state.year) return false;
-      if(state.fecha && d.fecha !== state.fecha) return false;
+      if(state.organo && d.organo !== state.organo) return false;
+      //  Rango de fechas. Un documento sin fecha queda fuera en cuanto se
+      //  pide un rango: mejor eso que colarlo sin saber si corresponde.
+      if(state.desde || state.hasta){
+        if(!d.fecha) return false;
+        if(state.desde && d.fecha < state.desde) return false;
+        if(state.hasta && d.fecha > state.hasta) return false;
+      }
       // Coincidencia inmediata con cualquier fragmento: incluye el numero de norma
       // (carpeta) y la parte, e ignora acentos para que 'resolucion' encuentre
       // 'Resolución' y al reves.
       if(q){
         const hay = sinAcentos([d.titulo, d.tipo, d.entidad, d.anio, d.original,
-                                d.coleccion, d.carpeta, d.parte].filter(Boolean).join(" "));
+                                d.coleccion, d.carpeta, d.parte, d.organo].filter(Boolean).join(" "));
         if(!hay.includes(q)) return false;
       }
       return true;
@@ -1192,16 +1307,40 @@
 
   // Una norma puede constar de varios PDF que se complementan (resolucion,
   // documento, anexo, expediente). Se agrupan por 'carpeta' y se anidan.
+  //  OPR pidio que TODOS los documentos se presenten igual, tambien los que
+  //  son un unico PDF: desplegables, indicando cuantos archivos contienen
+  //  (diapositiva 3). Antes solo se agrupaban las normas con mas de un
+  //  archivo y el resto aparecia suelto, de ahi el listado desparejo.
+  //
+  //  Para eso toda ficha necesita un grupo: su numero de resolucion si lo
+  //  tiene, y si no, ella misma.
+  const claveCarpeta = d => d.carpeta || d._key;
+  let ROTULO_CARPETA = new Map();   // clave de grupo -> lo que se lee en pantalla
+
   function indexarCarpetas(){
     CARPETAS = new Map();
+    ROTULO_CARPETA = new Map();
     INVENTARIO.forEach(d=>{
-      if(!d.carpeta) return;
-      if(!CARPETAS.has(d.carpeta)) CARPETAS.set(d.carpeta, []);
-      CARPETAS.get(d.carpeta).push(d);
+      const c = claveCarpeta(d);
+      if(!CARPETAS.has(c)){
+        CARPETAS.set(c, []);
+        ROTULO_CARPETA.set(c, d.carpeta || d.titulo || '(sin título)');
+      }
+      CARPETAS.get(c).push(d);
     });
   }
-  // Solo se anida si la norma tiene MAS de un documento
-  const esAnidable = d => d.carpeta && (CARPETAS.get(d.carpeta)||[]).length > 1;
+  //  Una fecha guardada como '2026-06-10' NO se puede pasar por new Date():
+  //  se interpreta como medianoche UTC y en Peru (UTC-5) retrocede un dia.
+  //  Se formatea a mano a partir del texto, que es lo unico fiable aqui.
+  const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','set','oct','nov','dic'];
+  function fechaDia(f){
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(f || ''));
+    if(!m) return '';
+    return `${m[3]} ${MESES[parseInt(m[2],10)-1] || '?'} ${m[1]}`;
+  }
+
+  //  Ahora se anida siempre: la presentacion es la misma para todos.
+  const esAnidable = () => true;
 
   const ORDEN_PARTE = ['Resolucion','Documento','Anexo','Expediente'];
   const ordenarPartes = arr => arr.slice().sort((a,b)=>{
@@ -1258,16 +1397,22 @@
 
       const grupos = new Map(), sueltos = [];
       arr.forEach(d=>{
-        if(esAnidable(d)){
-          if(!grupos.has(d.carpeta)) grupos.set(d.carpeta, []);
-          grupos.get(d.carpeta).push(d);
-        } else sueltos.push(d);
+        const c = claveCarpeta(d);
+        if(!grupos.has(c)) grupos.set(c, []);
+        grupos.get(c).push(d);
       });
 
+      //  OPR pidio orden del mas reciente al mas antiguo (diapositiva 2).
+      //  Antes se ordenaba solo por ANO, asi que dentro de un mismo ano el
+      //  orden era arbitrario. Ahora manda la fecha de publicacion y el ano
+      //  queda de respaldo para los documentos que aun no la tienen.
+      const clave = d => d.fecha || (d.anio ? String(d.anio) + '-00-00' : '');
       const entradas = [
-        ...[...grupos.entries()].map(([c,vis])=>({ carpeta:c, vis, anio:Math.max(...vis.map(d=>d.anio||0)) })),
-        ...sueltos.map(d=>({ doc:d, anio:d.anio||0 }))
-      ].sort((a,b)=> b.anio - a.anio);
+        ...[...grupos.entries()].map(([c,vis])=>({
+              carpeta:c, vis,
+              orden: vis.map(clave).sort().reverse()[0] || '' })),
+        ...sueltos.map(d=>({ doc:d, orden: clave(d) }))
+      ].sort((a,b)=> (b.orden || '').localeCompare(a.orden || ''));
 
       entradas.forEach(e=>{
         if(e.doc){ html += filaDoc(e.doc, false); return; }
@@ -1277,12 +1422,22 @@
         const cab = principal(e.vis) || e.vis[0];
         const cls = TIPOCLS[cab.tipo]||"--brand";
         const parcial = e.vis.length < todos.length;
-        const cuenta = parcial ? `${e.vis.length} de ${todos.length}` : `${todos.length}`;
+        //  "1 documento" en singular: con la presentacion homogenea hay muchas
+        //  normas de un solo archivo y el plural chirriaba.
+        const n = todos.length;
+        const cuenta = parcial
+          ? `${e.vis.length} de ${n} documentos`
+          : (n === 1 ? '1 documento' : `${n} documentos`);
+        const rotulo = ROTULO_CARPETA.get(e.carpeta) || e.carpeta;
+        //  El organo proponente, cuando se sabe, se lee en la cabecera: es el
+        //  dato que OPR pidio ver tres veces.
+        const org = cab.organo ? `<span>· ${esc(cab.organo)}</span>` : '';
+        const fch = cab.fecha ? `<span>· ${esc(fechaDia(cab.fecha))}</span>` : (cab.anio?`<span>· ${cab.anio}</span>`:'');
         html += `<div class="row norma ${abierta?'abierta':''}" onclick="abrirCarpeta(${i})">
           <button class="chev" onclick="event.stopPropagation();alternarCarpeta(${i})" aria-label="${abierta?'Plegar':'Desplegar'}">${abierta?'▾':'▸'}</button>
           <div class="row-main">
-            <div class="name" title="${esc(e.carpeta)}">${esc(e.carpeta)}</div>
-            <div class="meta"><span class="tchip" style="background:var(${cls})">${esc(cab.tipo)}</span><span>${esc(cab.entidad||'')}</span>${cab.anio?`<span>· ${cab.anio}</span>`:''}<span class="nchip">${cuenta} documentos</span></div>
+            <div class="name" title="${esc(rotulo)}">${esc(rotulo)}</div>
+            <div class="meta"><span class="tchip" style="background:var(${cls})">${esc(cab.tipo)}</span><span>${esc(cab.entidad||'')}</span>${org}${fch}<span class="nchip">${cuenta}</span></div>
           </div>
           <span class="badge ${stCls(cab.estado)}">${esc(cab.estado||'Vigente')}</span>
         </div>`;
@@ -1294,9 +1449,11 @@
 
   // Nombre con el que se guarda el PDF. Se usa el original si lo hay, y se
   // evita el ".pdf.pdf" que salia al añadir la extension a ciegas.
-  function nombreDescarga(d){
-    const base = (d.original || d.titulo || 'documento').trim();
-    return /\.pdf$/i.test(base) ? base : base + '.pdf';
+  function nombreDescarga(d, ext){
+    ext = ext || 'pdf';
+    let base = (d.original || d.titulo || 'documento').trim();
+    base = base.replace(/\.(pdf|docx?)$/i, '');     // sin la extension que traiga
+    return base + '.' + ext;
   }
 
   async function select(key){
@@ -1327,10 +1484,28 @@
     const nombre = nombreDescarga(d);
     const urlDescarga = url + (url.includes('?') ? '&' : '?') + 'download=' + encodeURIComponent(nombre);
 
+    //  OPR pidio poder descargar tambien el Word cuando exista (diapositiva 4).
+    //  Los .docx todavia no se han cargado: el boton solo aparece en los
+    //  documentos que tengan 'archivo_word', asi que hoy no se ve en ninguno
+    //  y se ira mostrando conforme se suban.
+    let botonWord = '';
+    if(d.archivo_word){
+      const w = await sb.storage.from('documentos').createSignedUrl(d.archivo_word, 3600);
+      if(w.data && w.data.signedUrl){
+        const nw = nombreDescarga(d, 'docx');
+        const uw = w.data.signedUrl + (w.data.signedUrl.includes('?') ? '&' : '?') +
+                   'download=' + encodeURIComponent(nw);
+        botonWord = `<a class="btn ghost" href="${uw}" download="${esc(nw)}" title="Versión editable en Word">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg> Word
+        </a>`;
+      }
+    }
+
     acts.innerHTML = `
       <a class="btn" href="${urlDescarga}" download="${esc(nombre)}">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg> Descargar
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg> PDF
       </a>
+      ${botonWord}
       <a class="btn ghost" href="${url}" target="_blank" rel="noopener">Abrir en pestaña</a>`;
   }
 
@@ -1686,8 +1861,11 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
   //  El formato NO es una sugerencia: se valida entero y, mientras haya un solo
   //  error, el boton de subir sigue deshabilitado. Asi no entran a la base
   //  documentos a medias ni PDF huerfanos.
-  const COLUMNAS = ['archivo','titulo','tipo','entidad','anio','estado','fecha','carpeta','parte'];
-  const ESTADOS  = ['Vigente','Modificada','Derogada'];
+  //  'organo' y 'modifica_a' son de las observaciones de OPR (diapositivas 7 y 8).
+  //  'anio' sale de 'fecha', asi que deja de pedirse: una cifra menos que cuadrar.
+  const COLUMNAS = ['archivo','titulo','tipo','entidad','fecha','estado','organo',
+                    'carpeta','parte','modifica_a'];
+  const ESTADOS  = ['Vigente','Modificación','Derogada'];
   const PARTES   = ['Resolucion','Documento','Anexo','Expediente'];
   let MASIVA = { filas: [], pdfs: new Map(), listo: false };
 
@@ -1719,15 +1897,24 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
   }
 
   function plantillaCsv(){
-    const ej1 = ['DIRECTIVA-001-2026.pdf','Directiva General N 001-2026 sobre gestion documental','Directiva','SERFOR','2026','Vigente','2026-03-14','',''];
-    const ej2 = ['RES-045-2026.pdf','Aprueban los Lineamientos de fiscalizacion','Lineamientos','SERFOR','2026','Vigente','2026-05-02','RDE N 045-2026-MIDAGRI-SERFOR-DE','Resolucion'];
-    const ej3 = ['LIN-045-2026.pdf','Lineamientos de fiscalizacion','Lineamientos','SERFOR','2026','Vigente','2026-05-02','RDE N 045-2026-MIDAGRI-SERFOR-DE','Documento'];
+    //  Los tres ejemplos ensenan lo que mas se pregunta: como se enlaza cada
+    //  archivo con su norma. Lo hace la columna 'carpeta' —el numero de
+    //  resolucion, igual en todas las filas de la misma norma— y 'parte' dice
+    //  que papel cumple cada archivo.
+    const ej1 = ['DIRECTIVA-001-2026.pdf','Directiva General N 001-2026 sobre gestion documental','Directiva','SERFOR','2026-03-14','Vigente','Gerencia General','','',''];
+    const ej2 = ['RES-045-2026.pdf','RDE N 045-2026-MIDAGRI-SERFOR-DE','Lineamiento','SERFOR','2026-05-02','Vigente','Direccion Ejecutiva','RDE N 045-2026-MIDAGRI-SERFOR-DE','Resolucion',''];
+    const ej3 = ['LIN-045-2026.pdf','Lineamientos de fiscalizacion','Lineamiento','SERFOR','2026-05-02','Vigente','Direccion Ejecutiva','RDE N 045-2026-MIDAGRI-SERFOR-DE','Documento',''];
+    const ej4 = ['ANEXO-045-2026.pdf','Anexo 1 - Formatos','Lineamiento','SERFOR','2026-05-02','Vigente','Direccion Ejecutiva','RDE N 045-2026-MIDAGRI-SERFOR-DE','Anexo',''];
     const lineas = [
       COLUMNAS.join(';'),
       '# Las lineas que empiezan por # son ejemplos y NO se cargan. Borralas o dejalas.',
+      '# El primer ejemplo es un documento suelto. Los tres siguientes son UNA misma',
+      '# norma repartida en tres archivos: comparten el valor de carpeta y se',
+      '# diferencian por parte (Resolucion / Documento / Anexo).',
       '# ' + ej1.join(';'),
       '# ' + ej2.join(';'),
-      '# ' + ej3.join(';')
+      '# ' + ej3.join(';'),
+      '# ' + ej4.join(';')
     ];
     // BOM para que Excel respete las tildes
     return '\uFEFF' + lineas.join('\r\n') + '\r\n';
@@ -1807,7 +1994,11 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
     }
     const col = {}; COLUMNAS.forEach(c => col[c] = cab.indexOf(c));
 
-    const tiposOk = ORDEN.map(t=>t.toLowerCase());
+    //  El conjunto de destino decide que tipos valen: OPR tiene la lista corta
+    //  que acordo con nosotros, Normas OTI conserva la larga.
+    const destinoMasiva = (document.getElementById('mFuente') || {}).value
+                          || (FUENTES[0] && FUENTES[0].tabla);
+    const tiposOk = tiposDe(destinoMasiva).map(t=>t.toLowerCase());
     const vistos = new Set();
     const filasOk = [];
 
@@ -1833,10 +2024,6 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
       if(!pdf) err(`no seleccionaste el PDF <b>${esc(archivo)}</b>.`);
       else if(pdf.size > 50*1024*1024) err(`<b>${esc(archivo)}</b> pesa ${(pdf.size/1048576).toFixed(1)} MB y el limite es 50 MB.`);
 
-      const anio = v('anio');
-      if(anio && !/^\d{4}$/.test(anio)) err(`el anio <b>${esc(anio)}</b> no tiene cuatro cifras.`);
-      else if(anio && (+anio < 1990 || +anio > 2100)) err(`el anio <b>${esc(anio)}</b> esta fuera de rango.`);
-
       const estado = v('estado');
       if(estado && !ESTADOS.some(e => e.toLowerCase() === estado.toLowerCase()))
         err(`el estado <b>${esc(estado)}</b> no es valido.`);
@@ -1849,10 +2036,20 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
         err(`la parte <b>${esc(parte)}</b> no es valida.`);
       if(parte && !carpeta) err('si indicas <b>parte</b> tienes que indicar <b>carpeta</b>.');
 
+      //  'modifica_a' solo tiene sentido con el estado Modificación, y al reves:
+      //  marcar una modificacion sin decir que modifica deja el dato cojo.
+      const modifica = v('modifica_a');
+      if(modifica && estado.toLowerCase() !== 'modificación' && estado.toLowerCase() !== 'modificacion')
+        err('<b>modifica_a</b> solo se usa cuando el estado es <b>Modificación</b>.');
+      if(!modifica && (estado.toLowerCase() === 'modificación' || estado.toLowerCase() === 'modificacion'))
+        err('si el estado es <b>Modificación</b> hay que indicar <b>modifica_a</b>.');
+
       filasOk.push({ archivo, titulo, tipo, entidad:v('entidad')||null,
-                     anio: anio ? +anio : null,
+                     anio: fecha ? +fecha.slice(0,4) : null,   // el ano sale de la fecha
                      estado: estado || 'Vigente',
                      fecha: fecha || null,
+                     organo: v('organo') || null,
+                     modifica_a: modifica || null,
                      carpeta: carpeta || null, parte: parte || null, pdf });
     }
 
@@ -2089,6 +2286,17 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
   ['dragover','dragenter'].forEach(ev=>fileDrop.addEventListener(ev,e=>{e.preventDefault();fileDrop.classList.add('has');}));
   fileDrop.addEventListener('drop',e=>{ e.preventDefault(); if(e.dataTransfer.files.length){ fileInput.files=e.dataTransfer.files; fileInput.dispatchEvent(new Event('change')); }});
 
+  //  Lo mismo para la version en Word, que es opcional
+  const fileInputW = document.getElementById('uFileW');
+  const fileDropW  = document.getElementById('fileDropW');
+  const VACIO_W = 'Haz clic para elegir un .doc o .docx';
+  fileInputW.addEventListener('change', ()=>{
+    if(fileInputW.files.length){ fileDropW.textContent = '📝 ' + fileInputW.files[0].name; fileDropW.classList.add('has'); }
+    else { fileDropW.textContent = VACIO_W; fileDropW.classList.remove('has'); }
+  });
+  ['dragover','dragenter'].forEach(ev=>fileDropW.addEventListener(ev,e=>{e.preventDefault();fileDropW.classList.add('has');}));
+  fileDropW.addEventListener('drop',e=>{ e.preventDefault(); if(e.dataTransfer.files.length){ fileInputW.files=e.dataTransfer.files; fileInputW.dispatchEvent(new Event('change')); }});
+
   function slug(s){
     return s.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-zA-Z0-9]+/g,'_').replace(/^_+|_+$/g,'').toLowerCase().slice(0,60) || 'documento';
   }
@@ -2103,6 +2311,7 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
 
     const titulo = document.getElementById('uTitulo').value.trim();
     const tablaDestino = document.getElementById('uFuente').value || (FUENTES[0] && FUENTES[0].tabla) || 'documentos';
+    const fileW = document.getElementById('uFileW').files[0] || null;
     // El prefijo no es cosmetico: la regla de storage lo usa para decidir quien
     // puede leer el archivo (ver supabase-usuarios.sql).
     const prefijo = tablaDestino === 'normativos_opr' ? 'opr_' : '';
@@ -2112,28 +2321,54 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
     const up = await sb.storage.from('documentos').upload(path, file, { contentType:'application/pdf', upsert:false });
     if(up.error){ msg.className='form-msg err'; msg.textContent='Error al subir el archivo: '+up.error.message; btn.disabled=false; btn.textContent='Guardar en la base'; return; }
 
+    // 1b) el Word, si lo hay. Si falla, se retira el PDF y no queda nada a medias.
+    let pathW = null;
+    if(fileW){
+      const extW = (fileW.name.match(/\.docx?$/i) || ['.docx'])[0];
+      pathW = `${prefijo}${slug(titulo)}_${Date.now()}${extW}`;
+      const upW = await sb.storage.from('documentos').upload(pathW, fileW, { upsert:false });
+      if(upW.error){
+        await sb.storage.from('documentos').remove([path]);
+        msg.className='form-msg err'; msg.textContent='Error al subir el Word: '+upW.error.message;
+        btn.disabled=false; btn.textContent='Guardar en la base'; return;
+      }
+    }
+
     // 2) insertar fila
+    //  La fecha ya no es la del dia de la carga: es la de publicacion que
+    //  indique quien registra (diapositiva 5). El ano se deriva de ella.
+    const fechaPub = document.getElementById('uFecha').value || null;
+    const estado = document.getElementById('uEstado').value;
     const row = {
       tipo: document.getElementById('uTipo').value,
       titulo, entidad: document.getElementById('uEnt').value.trim() || null,
-      anio: parseInt(document.getElementById('uAnio').value) || null,
-      estado: document.getElementById('uEstado').value,
-      fecha: new Date().toISOString().slice(0,10),
+      anio: fechaPub ? parseInt(fechaPub.slice(0,4)) : null,
+      estado,
+      fecha: fechaPub,
+      organo: document.getElementById('uOrgano').value.trim() || null,
+      modifica_a: estado === 'Modificación'
+                    ? (document.getElementById('uModifica').value.trim() || null) : null,
       kb: Math.round(file.size/1024),
       archivo: path, original: file.name, created_by: currentUser.id
     };
+    if(pathW){ row.archivo_word = pathW; row.kb_word = Math.round(fileW.size/1024); }
     const tabla = tablaDestino;
     const nombreFuente = (FUENTES.find(f=>f.tabla===tabla)||{}).nombre || COL_BASE;
     if(COL_OK[tabla]) row.coleccion = document.getElementById('uCol').value.trim() || nombreFuente;
     const ins = await sb.from(tabla).insert(row);
     if(ins.error){
-      await sb.storage.from('documentos').remove([path]); // revertir archivo huérfano
+      //  Revertir TODO lo subido, no solo el PDF: si quedara el Word suelto
+      //  seria un archivo huerfano que nadie encuentra ni puede borrar.
+      await sb.storage.from('documentos').remove(pathW ? [path, pathW] : [path]);
       msg.className='form-msg err'; msg.textContent='Error al registrar: '+ins.error.message;
       btn.disabled=false; btn.textContent='Guardar en la base'; return;
     }
 
     msg.className='form-msg ok'; msg.textContent='✅ Documento agregado a la base.';
-    e.target.reset(); fileInput.dispatchEvent(new Event('change'));
+    e.target.reset();
+    fileInput.dispatchEvent(new Event('change'));
+    fileInputW.dispatchEvent(new Event('change'));
+    sincronizarModifica();
     btn.disabled=false; btn.textContent='Guardar en la base';
     await loadDocs();
     setTimeout(()=>showView('inv'), 900);
@@ -2147,15 +2382,34 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
   };
   document.getElementById('q').oninput = e=>{ state.q=e.target.value; render(); };
   document.getElementById('fCol').onchange = e=>{ state.col=e.target.value; render(); };
-  document.getElementById('fFecha').onchange = e=>{
-    state.fecha = e.target.value;
-    document.getElementById('fFechaX').hidden = !state.fecha;
-    render();
+  document.getElementById('fDesde').onchange = e=>{
+    state.desde = e.target.value;
+    sincronizarFechas();
   };
+  document.getElementById('fHasta').onchange = e=>{
+    state.hasta = e.target.value;
+    sincronizarFechas();
+  };
+  function sincronizarFechas(){
+    //  Un rango al reves no devuelve nada y parece un fallo: se corrige solo.
+    if(state.desde && state.hasta && state.desde > state.hasta){
+      const t = state.desde; state.desde = state.hasta; state.hasta = t;
+      document.getElementById('fDesde').value = state.desde;
+      document.getElementById('fHasta').value = state.hasta;
+    }
+    document.getElementById('fFechaX').hidden = !(state.desde || state.hasta);
+    render();
+  }
   document.getElementById('fFechaX').onclick = ()=>{
-    state.fecha = ""; document.getElementById('fFecha').value = "";
+    state.desde = ""; state.hasta = "";
+    document.getElementById('fDesde').value = "";
+    document.getElementById('fHasta').value = "";
     document.getElementById('fFechaX').hidden = true; render();
   };
+  document.getElementById('fOrgano').onchange = e=>{ state.organo=e.target.value; render(); };
+  //  El campo "Modifica a" aparece y desaparece con el estado
+  const selEstado = document.getElementById('uEstado');
+  if(selEstado) selEstado.onchange = sincronizarModifica;
   document.getElementById('fTipo').onchange = e=>{ state.tipo=e.target.value; render(); };
   document.getElementById('fEnt').onchange  = e=>{ state.ent=e.target.value; render(); };
   document.getElementById('fYear').onchange = e=>{ state.year=e.target.value; render(); };
