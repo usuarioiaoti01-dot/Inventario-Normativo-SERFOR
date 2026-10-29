@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
     ];
 
     // 4) Preguntar a Claude (Haiku 4.5)
-    const body = { model: "claude-haiku-4-5", max_tokens: 1024, system, messages: [{ role: "user", content }] };
+    const body = { model: "claude-haiku-4-5-20251001", max_tokens: 1024, system, messages: [{ role: "user", content }] };
 
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
