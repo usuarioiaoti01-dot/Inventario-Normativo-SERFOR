@@ -426,11 +426,14 @@
       <select class="filter" id="fTipo"><option value="">Todo tipo</option></select>
       <select class="filter" id="fEnt"><option value="">Toda entidad</option></select>
       <select class="filter" id="fYear"><option value="">Todos los años</option></select>
+      <select class="filter" id="fOrgano"><option value="">Todo órgano / UO</option></select>
       <select class="filter" id="fCol" hidden><option value="">Toda colección</option></select>
       <span class="fecha-caja">
-        <label for="fFecha">Día</label>
-        <input class="filter" type="date" id="fFecha" title="Mostrar solo los documentos de esa fecha">
-        <button class="btn-limpiar" id="fFechaX" type="button" title="Quitar el filtro de fecha" hidden>✕</button>
+        <label for="fDesde">Desde</label>
+        <input class="filter" type="date" id="fDesde" title="Publicados a partir de esta fecha">
+        <label for="fHasta">hasta</label>
+        <input class="filter" type="date" id="fHasta" title="Publicados hasta esta fecha">
+        <button class="btn-limpiar" id="fFechaX" type="button" title="Quitar el filtro de fechas" hidden>✕</button>
       </span>
       <span class="count-pill" id="countPill"></span>
     </div>
@@ -772,7 +775,11 @@
   ];
   const COL_BASE = "Normas OTI";   // coleccion de los documentos ya cargados
   // grupo:"" = todas las fuentes  |  col:"" = todas las colecciones de la fuente activa
-  const state = { q:"", tipo:"", ent:"", year:"", grupo:"", col:"", fecha:"", active:null, abiertas:new Set() };
+  //  'desde'/'hasta' sustituyen al dia suelto: OPR pidio poder ver un rango
+  //  (diapositiva 1). 'organo' es el filtro por Organo/UO Proponente, que OPR
+  //  reclamo tres veces (diapositivas 1, 2 y 7).
+  const state = { q:"", tipo:"", ent:"", year:"", grupo:"", col:"",
+                  desde:"", hasta:"", organo:"", active:null, abiertas:new Set() };
 
   // ---------- Arranque ----------
   function boot(){
@@ -784,12 +791,21 @@
     // corre, y cualquier consulta que necesite la sesion se queda esperando
     // para siempre (el usuario se quedaba en "Ingresando..."). Con setTimeout
     // el trabajo se hace ya fuera de ese contexto.
-    sb.auth.getSession().then(({data})=>{
-      setTimeout(()=> data.session ? entrar(data.session) : mostrarLogin(), 0);
-    });
-    sb.auth.onAuthStateChange((_e,session)=>{
+    //
+    //  Y OJO TAMBIEN con reentrar: Supabase emite TOKEN_REFRESHED cada vez que
+    //  la pestana recupera el foco. Si eso vuelve a ejecutar entrar(), la
+    //  pantalla salta al inventario y se pierde lo que se estuviera haciendo
+    //  —un formulario a medias, una busqueda—. Lo noto OPR (diapositiva 10).
+    //  La solucion es actuar solo cuando CAMBIA quien esta dentro.
+    let quienEstaDentro = undefined;        // undefined = aun no se sabe
+    const atender = (session) => {
+      const uid = (session && session.user && session.user.id) || null;
+      if (uid === quienEstaDentro) return;  // mismo usuario: no se rehace nada
+      quienEstaDentro = uid;
       setTimeout(()=> session ? entrar(session) : mostrarLogin(), 0);
-    });
+    };
+    sb.auth.getSession().then(({data})=> atender(data.session));
+    sb.auth.onAuthStateChange((_e, session)=> atender(session));
   }
   function show(id){ ['setupScreen','loginScreen','claveScreen','app'].forEach(x=>document.getElementById(x).hidden = (x!==id)); }
 
@@ -892,10 +908,11 @@
     indexarPerfiles([]);          // los perfiles tambien se olvidan al salir
     CARPETAS = new Map();
     Object.keys(COL_OK).forEach(k => delete COL_OK[k]);
-    Object.assign(state, { q:"", tipo:"", ent:"", year:"", grupo:"", col:"", fecha:"", active:null });
+    Object.assign(state, { q:"", tipo:"", ent:"", year:"", grupo:"", col:"",
+                           desde:"", hasta:"", organo:"", active:null });
     state.abiertas.clear();
 
-    ['q','fTipo','fEnt','fYear','fCol','fFecha'].forEach(id=>{
+    ['q','fTipo','fEnt','fYear','fOrgano','fCol','fDesde','fHasta'].forEach(id=>{
       const el = document.getElementById(id); if(el) el.value = '';
     });
     const x = document.getElementById('fFechaX'); if(x) x.hidden = true;
@@ -1002,14 +1019,12 @@
   // Un Especialista ve "Inventario OPR"; el perfil Normas OTI, "Inventario
   // Normas OTI"; un Administrador, que ve los dos conjuntos, solo "Inventario".
   // Fijarlo a mano hacia que a unos les mintiera el rotulo.
+  //  OPR pidio que ponga solo "Inventario" (diapositiva 1). Antes el rotulo
+  //  se adaptaba al perfil ("Inventario OPR") para no mentir sobre lo que se
+  //  esta viendo; eso ahora lo dicen las pestanas de conjunto, que ya
+  //  muestran cuales estan disponibles y con cuantos documentos.
   function rotularInventario(){
-    const btn = document.getElementById('navInv');
-    if(GRUPOS.length === 1){
-      const f = FUENTES.find(x => x.nombre === GRUPOS[0]);
-      btn.textContent = 'Inventario ' + ((f && f.corto) || GRUPOS[0]);
-    } else {
-      btn.textContent = 'Inventario';
-    }
+    document.getElementById('navInv').textContent = 'Inventario';
   }
 
   // ---------- Cambio de clave obligatorio ----------
@@ -1143,9 +1158,14 @@
     const tipos = [...new Set(ambito.map(d=>d.tipo).filter(Boolean))].sort((a,b)=>(ORDEN.indexOf(a)-ORDEN.indexOf(b)));
     const ents  = [...new Set(ambito.map(d=>d.entidad).filter(Boolean))].sort();
     const years = [...new Set(ambito.map(d=>d.anio).filter(Boolean))].sort((a,b)=>b-a);
+    const organos = [...new Set(ambito.map(d=>d.organo).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
     fill('fTipo','Todo tipo',tipos,'tipo');
     fill('fEnt','Toda entidad',ents,'ent');
     fill('fYear','Todos los años',years,'year');
+    fill('fOrgano','Todo órgano / UO',organos,'organo');
+    //  Mientras no haya ningun documento con organo asignado, el filtro
+    //  estorba mas que ayuda: se oculta hasta que existan datos.
+    document.getElementById('fOrgano').hidden = organos.length === 0;
 
     // La coleccion es un sublote dentro de la fuente: solo se ofrece si hay mas de uno
     const cols = colecciones(ambito);
@@ -1177,13 +1197,20 @@
       if(state.tipo && d.tipo!==state.tipo) return false;
       if(state.ent && d.entidad!==state.ent) return false;
       if(state.year && String(d.anio)!==state.year) return false;
-      if(state.fecha && d.fecha !== state.fecha) return false;
+      if(state.organo && d.organo !== state.organo) return false;
+      //  Rango de fechas. Un documento sin fecha queda fuera en cuanto se
+      //  pide un rango: mejor eso que colarlo sin saber si corresponde.
+      if(state.desde || state.hasta){
+        if(!d.fecha) return false;
+        if(state.desde && d.fecha < state.desde) return false;
+        if(state.hasta && d.fecha > state.hasta) return false;
+      }
       // Coincidencia inmediata con cualquier fragmento: incluye el numero de norma
       // (carpeta) y la parte, e ignora acentos para que 'resolucion' encuentre
       // 'Resolución' y al reves.
       if(q){
         const hay = sinAcentos([d.titulo, d.tipo, d.entidad, d.anio, d.original,
-                                d.coleccion, d.carpeta, d.parte].filter(Boolean).join(" "));
+                                d.coleccion, d.carpeta, d.parte, d.organo].filter(Boolean).join(" "));
         if(!hay.includes(q)) return false;
       }
       return true;
@@ -1192,16 +1219,40 @@
 
   // Una norma puede constar de varios PDF que se complementan (resolucion,
   // documento, anexo, expediente). Se agrupan por 'carpeta' y se anidan.
+  //  OPR pidio que TODOS los documentos se presenten igual, tambien los que
+  //  son un unico PDF: desplegables, indicando cuantos archivos contienen
+  //  (diapositiva 3). Antes solo se agrupaban las normas con mas de un
+  //  archivo y el resto aparecia suelto, de ahi el listado desparejo.
+  //
+  //  Para eso toda ficha necesita un grupo: su numero de resolucion si lo
+  //  tiene, y si no, ella misma.
+  const claveCarpeta = d => d.carpeta || d._key;
+  let ROTULO_CARPETA = new Map();   // clave de grupo -> lo que se lee en pantalla
+
   function indexarCarpetas(){
     CARPETAS = new Map();
+    ROTULO_CARPETA = new Map();
     INVENTARIO.forEach(d=>{
-      if(!d.carpeta) return;
-      if(!CARPETAS.has(d.carpeta)) CARPETAS.set(d.carpeta, []);
-      CARPETAS.get(d.carpeta).push(d);
+      const c = claveCarpeta(d);
+      if(!CARPETAS.has(c)){
+        CARPETAS.set(c, []);
+        ROTULO_CARPETA.set(c, d.carpeta || d.titulo || '(sin título)');
+      }
+      CARPETAS.get(c).push(d);
     });
   }
-  // Solo se anida si la norma tiene MAS de un documento
-  const esAnidable = d => d.carpeta && (CARPETAS.get(d.carpeta)||[]).length > 1;
+  //  Una fecha guardada como '2026-06-10' NO se puede pasar por new Date():
+  //  se interpreta como medianoche UTC y en Peru (UTC-5) retrocede un dia.
+  //  Se formatea a mano a partir del texto, que es lo unico fiable aqui.
+  const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','set','oct','nov','dic'];
+  function fechaDia(f){
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(f || ''));
+    if(!m) return '';
+    return `${m[3]} ${MESES[parseInt(m[2],10)-1] || '?'} ${m[1]}`;
+  }
+
+  //  Ahora se anida siempre: la presentacion es la misma para todos.
+  const esAnidable = () => true;
 
   const ORDEN_PARTE = ['Resolucion','Documento','Anexo','Expediente'];
   const ordenarPartes = arr => arr.slice().sort((a,b)=>{
@@ -1258,16 +1309,22 @@
 
       const grupos = new Map(), sueltos = [];
       arr.forEach(d=>{
-        if(esAnidable(d)){
-          if(!grupos.has(d.carpeta)) grupos.set(d.carpeta, []);
-          grupos.get(d.carpeta).push(d);
-        } else sueltos.push(d);
+        const c = claveCarpeta(d);
+        if(!grupos.has(c)) grupos.set(c, []);
+        grupos.get(c).push(d);
       });
 
+      //  OPR pidio orden del mas reciente al mas antiguo (diapositiva 2).
+      //  Antes se ordenaba solo por ANO, asi que dentro de un mismo ano el
+      //  orden era arbitrario. Ahora manda la fecha de publicacion y el ano
+      //  queda de respaldo para los documentos que aun no la tienen.
+      const clave = d => d.fecha || (d.anio ? String(d.anio) + '-00-00' : '');
       const entradas = [
-        ...[...grupos.entries()].map(([c,vis])=>({ carpeta:c, vis, anio:Math.max(...vis.map(d=>d.anio||0)) })),
-        ...sueltos.map(d=>({ doc:d, anio:d.anio||0 }))
-      ].sort((a,b)=> b.anio - a.anio);
+        ...[...grupos.entries()].map(([c,vis])=>({
+              carpeta:c, vis,
+              orden: vis.map(clave).sort().reverse()[0] || '' })),
+        ...sueltos.map(d=>({ doc:d, orden: clave(d) }))
+      ].sort((a,b)=> (b.orden || '').localeCompare(a.orden || ''));
 
       entradas.forEach(e=>{
         if(e.doc){ html += filaDoc(e.doc, false); return; }
@@ -1277,12 +1334,22 @@
         const cab = principal(e.vis) || e.vis[0];
         const cls = TIPOCLS[cab.tipo]||"--brand";
         const parcial = e.vis.length < todos.length;
-        const cuenta = parcial ? `${e.vis.length} de ${todos.length}` : `${todos.length}`;
+        //  "1 documento" en singular: con la presentacion homogenea hay muchas
+        //  normas de un solo archivo y el plural chirriaba.
+        const n = todos.length;
+        const cuenta = parcial
+          ? `${e.vis.length} de ${n} documentos`
+          : (n === 1 ? '1 documento' : `${n} documentos`);
+        const rotulo = ROTULO_CARPETA.get(e.carpeta) || e.carpeta;
+        //  El organo proponente, cuando se sabe, se lee en la cabecera: es el
+        //  dato que OPR pidio ver tres veces.
+        const org = cab.organo ? `<span>· ${esc(cab.organo)}</span>` : '';
+        const fch = cab.fecha ? `<span>· ${esc(fechaDia(cab.fecha))}</span>` : (cab.anio?`<span>· ${cab.anio}</span>`:'');
         html += `<div class="row norma ${abierta?'abierta':''}" onclick="abrirCarpeta(${i})">
           <button class="chev" onclick="event.stopPropagation();alternarCarpeta(${i})" aria-label="${abierta?'Plegar':'Desplegar'}">${abierta?'▾':'▸'}</button>
           <div class="row-main">
-            <div class="name" title="${esc(e.carpeta)}">${esc(e.carpeta)}</div>
-            <div class="meta"><span class="tchip" style="background:var(${cls})">${esc(cab.tipo)}</span><span>${esc(cab.entidad||'')}</span>${cab.anio?`<span>· ${cab.anio}</span>`:''}<span class="nchip">${cuenta} documentos</span></div>
+            <div class="name" title="${esc(rotulo)}">${esc(rotulo)}</div>
+            <div class="meta"><span class="tchip" style="background:var(${cls})">${esc(cab.tipo)}</span><span>${esc(cab.entidad||'')}</span>${org}${fch}<span class="nchip">${cuenta}</span></div>
           </div>
           <span class="badge ${stCls(cab.estado)}">${esc(cab.estado||'Vigente')}</span>
         </div>`;
@@ -2147,15 +2214,31 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
   };
   document.getElementById('q').oninput = e=>{ state.q=e.target.value; render(); };
   document.getElementById('fCol').onchange = e=>{ state.col=e.target.value; render(); };
-  document.getElementById('fFecha').onchange = e=>{
-    state.fecha = e.target.value;
-    document.getElementById('fFechaX').hidden = !state.fecha;
-    render();
+  document.getElementById('fDesde').onchange = e=>{
+    state.desde = e.target.value;
+    sincronizarFechas();
   };
+  document.getElementById('fHasta').onchange = e=>{
+    state.hasta = e.target.value;
+    sincronizarFechas();
+  };
+  function sincronizarFechas(){
+    //  Un rango al reves no devuelve nada y parece un fallo: se corrige solo.
+    if(state.desde && state.hasta && state.desde > state.hasta){
+      const t = state.desde; state.desde = state.hasta; state.hasta = t;
+      document.getElementById('fDesde').value = state.desde;
+      document.getElementById('fHasta').value = state.hasta;
+    }
+    document.getElementById('fFechaX').hidden = !(state.desde || state.hasta);
+    render();
+  }
   document.getElementById('fFechaX').onclick = ()=>{
-    state.fecha = ""; document.getElementById('fFecha').value = "";
+    state.desde = ""; state.hasta = "";
+    document.getElementById('fDesde').value = "";
+    document.getElementById('fHasta').value = "";
     document.getElementById('fFechaX').hidden = true; render();
   };
+  document.getElementById('fOrgano').onchange = e=>{ state.organo=e.target.value; render(); };
   document.getElementById('fTipo').onchange = e=>{ state.tipo=e.target.value; render(); };
   document.getElementById('fEnt').onchange  = e=>{ state.ent=e.target.value; render(); };
   document.getElementById('fYear').onchange = e=>{ state.year=e.target.value; render(); };
