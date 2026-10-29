@@ -3,12 +3,21 @@
 //  Responde preguntas sobre UN documento normativo usando Claude (Anthropic).
 //  La clave ANTHROPIC_API_KEY vive aquí como secreto — NUNCA en el frontend.
 //
+//  EL PDF NO PASA POR AQUI. Se le entrega a Anthropic una URL firmada y lo
+//  descarga el. Antes se bajaba el archivo, se convertia a base64 (que en
+//  JavaScript ocupa el DOBLE, por ser texto) y se copiaba otra vez al
+//  serializar la peticion: un escaneado de 12 MB llegaba a ~100 MB y el
+//  proceso moria con WORKER_RESOURCE_LIMIT. Ademas se analizaba el PDF con
+//  unpdf solo para contar paginas, que era el gasto de CPU mas caro.
+//
+//  Los PDF escaneados se leen igual: Claude procesa cada pagina tambien como
+//  imagen, de modo que el OCR ya viene incluido y no hace falta anadirlo.
+//
 //  Despliegue (ver LEEME.md):
 //    1) Guardar el secreto:  ANTHROPIC_API_KEY = sk-ant-...
 //    2) Desplegar la función: preguntar
 // ============================================================
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { encodeBase64 } from "https://deno.land/std@0.224.0/encoding/base64.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -65,41 +74,31 @@ Deno.serve(async (req) => {
       ].join(" | "))
       .join("\n");
 
-    // 4) El PDF abierto, si lo hay. Se descarga con service role porque el
-    //    bucket es privado; el permiso ya se comprobo arriba.
+    // 4) El PDF abierto, si lo hay. NO se descarga: se firma una URL temporal
+    //    y Anthropic la busca por su cuenta.
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
-    let bytes: Uint8Array | null = null;
+    let urlPdf: string | null = null;
     if (archivo) {
-      //  El bucket se lee con service role, que salta RLS, asi que el permiso
+      //  La firma se hace con service role, que salta RLS, asi que el permiso
       //  hay que comprobarlo AQUI: ese archivo debe estar en el catalogo que
       //  RLS dejo ver a esta persona. Sin esto, conociendo la ruta se podria
       //  preguntar por un documento de otro conjunto.
       if (!catalogo.some((d) => d.archivo === archivo)) {
         return json({ error: "No tienes acceso a ese documento." }, 403);
       }
-      const { data: file, error: dlErr } = await admin.storage.from("documentos").download(archivo);
-      if (dlErr || !file) return json({ error: "No se pudo leer el documento: " + (dlErr?.message ?? "") }, 404);
-      bytes = new Uint8Array(await file.arrayBuffer());
+      //  5 minutos: suficiente para que Anthropic lo descargue y poco para
+      //  que la URL sirva de algo si se filtra. Es el mismo mecanismo que ya
+      //  usa el visor de la aplicacion.
+      const { data: firma, error: errFirma } = await admin.storage
+        .from("documentos").createSignedUrl(archivo, 300);
+      if (errFirma || !firma?.signedUrl) {
+        return json({ error: "No se pudo preparar el documento: " + (errFirma?.message ?? "") }, 404);
+      }
+      urlPdf = firma.signedUrl;
     }
 
     // Mensaje para documentos que superan el límite del asistente
-    const BIG_MSG = "DOCUMENTO GRANDE - TENGO LIMITADO A SOLO DOCUMENTOS DE 100 PAGINAS O MENOS";
-
-    //  Los limites de tamano solo importan cuando hay PDF que adjuntar. Si el
-    //  documento abierto es demasiado grande NO se corta la conversacion: se
-    //  sigue sin el, porque la busqueda en el catalogo igual funciona.
-    let pdfDescartado = false;
-    if (bytes) {
-      // Documento demasiado pesado (Claude admite hasta 32 MB; base64 infla ~33%)
-      if (bytes.length > 22 * 1024 * 1024) { bytes = null; pdfDescartado = true; }
-      else {
-        try {
-          const { getDocumentProxy } = await import("https://esm.sh/unpdf@0.12.1");
-          const pdf = await getDocumentProxy(bytes);
-          if (pdf.numPages > 100) { bytes = null; pdfDescartado = true; }
-        } catch (_) { /* si no se puede contar, Claude lo detectara abajo */ }
-      }
-    }
+    const BIG_MSG = "DOCUMENTO DEMASIADO EXTENSO - PUEDO LEER HASTA 600 PAGINAS POR DOCUMENTO";
 
     const system = [
       "Eres el asistente del Inventario Normativo del SERFOR (Peru). Responde SIEMPRE en espanol,",
@@ -126,23 +125,27 @@ Deno.serve(async (req) => {
       "Decide tu cual de las dos cosas te piden. Ante la duda, responde sobre el documento adjunto",
       "si lo hay y ofrece buscar en el inventario.",
       "",
-      pdfDescartado
-        ? "AVISO: el documento abierto no se pudo adjuntar (supera 100 paginas o 22 MB). Puedes buscar en el catalogo, pero no leer su contenido; dilo si te preguntan por el."
-        : "",
       "",
       "CATALOGO (" + catalogo.length + " documentos):",
       listado,
     ].join("\n");
 
     const content: unknown[] = [];
-    if (bytes) {
-      content.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data: encodeBase64(bytes) }, citations: { enabled: true } });
+    if (urlPdf) {
+      //  'url': Anthropic descarga el PDF. Los escaneados se leen igual,
+      //  porque cada pagina se procesa tambien como imagen.
+      content.push({ type: "document", source: { type: "url", url: urlPdf }, citations: { enabled: true } });
     }
     content.push({ type: "text", text: pregunta });
 
     // 4) Preguntar a Claude (Haiku 4.5)
-    //  2048 porque una lista de coincidencias ocupa mas que una respuesta suelta
-    const body = { model: "claude-haiku-4-5-20251001", max_tokens: 2048, system, messages: [{ role: "user", content }] };
+    //  Haiku 5.5 en vez de 4.5 por dos motivos concretos:
+    //    - contexto de 1M en lugar de 200K, y el limite de paginas por PDF
+    //      depende de eso: 600 con 1M, solo 100 por debajo.
+    //    - cuesta la decima parte, lo que importa porque ahora cada pregunta
+    //      lleva el catalogo entero.
+    //  2048 porque una lista de coincidencias ocupa mas que una respuesta suelta.
+    const body = { model: "claude-haiku-5-5", max_tokens: 2048, system, messages: [{ role: "user", content }] };
 
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -156,9 +159,14 @@ Deno.serve(async (req) => {
 
     if (!resp.ok) {
       const t = await resp.text();
-      // Respaldo: si unpdf no pudo contar y el PDF excede 100 páginas
-      if (resp.status === 400 && /100 PDF pages/i.test(t)) {
+      //  Ya no se cuentan paginas aqui: el limite lo aplica Claude y se
+      //  traduce su error. Cubre tambien el tope de 32 MB por documento.
+      if (resp.status === 400 && /PDF pages|exceeds the maximum|too large|prompt is too long/i.test(t)) {
         return json({ respuesta: BIG_MSG, grande: true });
+      }
+      //  Si Anthropic no pudo descargar el archivo, decirlo con claridad
+      if (/unable to (fetch|download)|failed to fetch|url.*not.*accessible/i.test(t)) {
+        return json({ error: "Anthropic no pudo descargar el documento desde el almacén. Vuelve a intentarlo." }, 502);
       }
       return json({ error: "Error de Claude (" + resp.status + "): " + t }, 502);
     }
