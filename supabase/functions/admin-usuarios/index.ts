@@ -22,17 +22,23 @@ const cors = {
 const json = (obj: unknown, status = 200) =>
   new Response(JSON.stringify(obj), { status, headers: { ...cors, "content-type": "application/json" } });
 
-const ROLES = ["admin", "especialista", "normas_oti"];
-
-// El rol puede haberse escrito a mano ('Admin', 'Administrador', con espacios).
-// Comparar contra "admin" a secas dejaba fuera a administradores reales:
-// la interfaz los mostraba como tales y esta funcion los rechazaba.
-const normalizarRol = (r: unknown) => {
-  const v = String(r ?? "").trim().normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-  if (v === "admin" || v === "administrador") return "admin";
-  if (v === "especialista" || v === "lector" || v === "profesional") return "especialista";
-  if (v === "normas_oti" || v === "normas oti" || v === "oti") return "normas_oti";
-  return null;
+// Los perfiles ya no estan escritos aqui: se leen de la tabla "perfiles"
+// (ver supabase-perfiles-editables.sql). Crear un perfil desde la pantalla
+// basta para poder asignarlo, sin volver a desplegar esta funcion.
+//
+// Se conserva la tolerancia a como se escribio el rol a mano ('Admin',
+// 'Administrador', con espacios): comparar contra la clave exacta dejaba
+// fuera a administradores reales, que la interfaz si reconocia.
+const ALIAS: Record<string, string> = {
+  administrador: "admin", administrator: "admin",
+  profesional: "especialista", oti: "normas_oti",
+};
+const claveRol = (r: unknown, validas: Set<string>) => {
+  const v = String(r ?? "").trim().normalize("NFD").replace(/[̀-ͯ]/g, "")
+              .toLowerCase().replace(/\s+/g, "_");
+  if (validas.has(v)) return v;
+  const a = ALIAS[v];
+  return (a && validas.has(a)) ? a : null;
 };
 
 Deno.serve(async (req) => {
@@ -51,19 +57,34 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
-    // 2) ...y debe ser administrador. Se comprueba con service role para que
-    //    no dependa de lo que el navegador diga tener.
+    // 2) Los perfiles vigentes, tal como estan en la base. De aqui sale tanto
+    //    que roles son validos como cual de ellos gestiona cuentas.
+    const { data: perfiles, error: errPerf } = await admin
+      .from("perfiles").select("clave, nombre, gestiona_cuentas");
+    if (errPerf || !perfiles || !perfiles.length) {
+      return json({ error: "No se pudo leer la tabla de perfiles. Ejecuta supabase-perfiles-editables.sql." }, 500);
+    }
+    const VALIDAS = new Set(perfiles.map((x) => x.clave as string));
+    const MANDAN = new Set(perfiles.filter((x) => x.gestiona_cuentas).map((x) => x.clave as string));
+    const normalizarRol = (r: unknown) => claveRol(r, VALIDAS);
+    const gestiona = (r: unknown) => { const c = normalizarRol(r); return !!c && MANDAN.has(c); };
+
+    // 3) Quien llama debe tener un perfil que gestione cuentas. Se comprueba con
+    //    service role para que no dependa de lo que el navegador diga tener.
     const { data: yo } = await admin.from("profiles").select("role").eq("id", user.id).single();
     if (!yo) return json({ error: "Tu cuenta no tiene perfil en la tabla profiles." }, 403);
-    if (normalizarRol(yo.role) !== "admin") {
-      return json({ error: `Se requiere rol de administrador (tu perfil es ${JSON.stringify(yo.role)}).` }, 403);
+    if (!gestiona(yo.role)) {
+      return json({ error: `Tu perfil (${JSON.stringify(yo.role)}) no tiene permiso para gestionar cuentas.` }, 403);
     }
 
     const { accion, id, email, nombre, clave, rol } = await req.json();
 
-    // Cuantos administradores quedan: impide quedarse sin ninguno
+    // Cuantas cuentas pueden administrar: impide quedarse sin ninguna. Se
+    // cuenta por PERMISO, no por el nombre del perfil, porque ahora puede
+    // haber varios perfiles que gestionen cuentas.
     const contarAdmins = async () => {
-      const { count } = await admin.from("profiles").select("id", { count: "exact", head: true }).eq("role", "admin");
+      const { count } = await admin.from("profiles")
+        .select("id", { count: "exact", head: true }).in("role", [...MANDAN]);
       return count ?? 0;
     };
 
@@ -91,7 +112,12 @@ Deno.serve(async (req) => {
       case "crear": {
         if (!email || !clave) return json({ error: "Faltan el correo o la clave inicial." }, 400);
         if (clave.length < 8) return json({ error: "La clave inicial debe tener al menos 8 caracteres." }, 400);
-        const rolNuevo = normalizarRol(rol) ?? "especialista";
+        // Antes, un rol no reconocido caia en silencio a "especialista" y la
+        // cuenta quedaba con permisos distintos a los pedidos. Ahora se rechaza.
+        const rolNuevo = normalizarRol(rol);
+        if (!rolNuevo) {
+          return json({ error: `El perfil ${JSON.stringify(rol)} no existe. Perfiles validos: ${[...VALIDAS].join(", ")}.` }, 400);
+        }
 
         const { data: creado, error: errCrear } = await admin.auth.admin.createUser({
           email, password: clave, email_confirm: true,
@@ -121,8 +147,8 @@ Deno.serve(async (req) => {
         if (id === user.id) return json({ error: "No puedes eliminar tu propia cuenta." }, 400);
 
         const { data: destino } = await admin.from("profiles").select("role").eq("id", id).single();
-        if (normalizarRol(destino?.role) === "admin" && (await contarAdmins()) <= 1) {
-          return json({ error: "Es el unico administrador: la aplicacion quedaria sin acceso." }, 400);
+        if (gestiona(destino?.role) && (await contarAdmins()) <= 1) {
+          return json({ error: "Es la unica cuenta que puede administrar: la aplicacion quedaria sin acceso." }, 400);
         }
 
         const { error } = await admin.auth.admin.deleteUser(id);
@@ -133,13 +159,15 @@ Deno.serve(async (req) => {
       // ---------- Cambiar rol ----------
       case "cambiar_rol": {
         const rolPedido = normalizarRol(rol);
-        if (!id || !rolPedido) return json({ error: "Rol no valido: " + JSON.stringify(rol) }, 400);
-        if (id === user.id && rolPedido !== "admin") {
-          return json({ error: "No puedes quitarte a ti mismo el rol de administrador." }, 400);
+        if (!id || !rolPedido) {
+          return json({ error: `Perfil no valido: ${JSON.stringify(rol)}. Validos: ${[...VALIDAS].join(", ")}.` }, 400);
+        }
+        if (id === user.id && !gestiona(rolPedido)) {
+          return json({ error: "No puedes quitarte a ti mismo el permiso de gestionar cuentas." }, 400);
         }
         const { data: destino } = await admin.from("profiles").select("role").eq("id", id).single();
-        if (normalizarRol(destino?.role) === "admin" && rolPedido !== "admin" && (await contarAdmins()) <= 1) {
-          return json({ error: "Es el unico administrador: la aplicacion quedaria sin acceso." }, 400);
+        if (gestiona(destino?.role) && !gestiona(rolPedido) && (await contarAdmins()) <= 1) {
+          return json({ error: "Es la unica cuenta que puede administrar: la aplicacion quedaria sin acceso." }, 400);
         }
         const { error } = await admin.from("profiles").update({ role: rolPedido }).eq("id", id);
         if (error) return json({ error: error.message }, 500);
