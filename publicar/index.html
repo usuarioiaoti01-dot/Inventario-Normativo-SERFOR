@@ -248,6 +248,19 @@
   .msg .cites{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
   .msg .cite{font-size:.7rem;font-weight:700;background:var(--brand-tint);color:var(--brand);padding:2px 8px;border-radius:20px}
   .msg.think{color:var(--ink-faint);font-style:italic}
+  /* Documentos encontrados: fichas con boton para abrirlos en el visor */
+  .msg .hits{display:flex;flex-direction:column;gap:7px;margin-top:10px}
+  .msg .hit{display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid var(--line);
+    border-radius:10px;background:var(--surface-2);white-space:normal}
+  .msg .hit-main{flex:1;min-width:0}
+  .msg .hit-tit{font-weight:600;font-size:.82rem;color:var(--ink);line-height:1.35}
+  .msg .hit-meta{font-size:.72rem;color:var(--ink-faint);margin-top:3px;
+    display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .msg .hit-ver{flex:none;padding:6px 10px;font-size:.74rem;font-weight:700;border-radius:7px;
+    border:1px solid var(--brand);background:transparent;color:var(--brand);cursor:pointer;font-family:inherit}
+  .msg .hit-ver:hover{background:var(--brand);color:#fff}
+  .msg .hit.activo{border-color:var(--brand);background:var(--brand-tint)}
+  .msg .hit-n{font-size:.72rem;color:var(--ink-faint);margin-top:9px}
   .chat-input{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line);background:var(--surface);flex:none}
   .chat-input input{flex:1;padding:10px 12px;border:1px solid var(--line-strong);border-radius:20px;background:var(--bg);color:var(--ink);font-size:.86rem}
   .chat-input input:focus{outline:2px solid var(--brand);outline-offset:1px}
@@ -709,16 +722,16 @@
       <img src="capibara-serfor.png" alt="" onerror="this.style.display='none'">
       <div class="cph-txt">
         <b>Consulta Contenido</b>
-        <span id="chatScope">Selecciona un documento</span>
+        <span id="chatScope">Todo el inventario</span>
       </div>
       <button class="chat-close" onclick="toggleChat()" aria-label="Cerrar">✕</button>
     </div>
     <div class="chat-log" id="chatLog">
-      <div class="chat-empty">Elige una directiva y hazme preguntas sobre su contenido. Responderé citando el documento.</div>
+      <div class="chat-empty">Pídeme que <b>busque documentos</b> por tema, número, entidad, año o lo que necesites, y te los listo para abrirlos. Si tienes uno abierto, también respondo sobre su contenido citando el documento.</div>
     </div>
     <div class="chat-input">
-      <input id="chatQ" placeholder="Pregunta sobre este documento…" autocomplete="off" disabled onkeydown="if(event.key==='Enter')askAI()">
-      <button id="chatSend" onclick="askAI()" disabled aria-label="Enviar">➤</button>
+      <input id="chatQ" placeholder="Busca un documento o pregunta…" autocomplete="off" onkeydown="if(event.key==='Enter')askAI()">
+      <button id="chatSend" onclick="askAI()" aria-label="Enviar">➤</button>
     </div>
     <div class="chat-disclaimer">⚠️ Asistente en fase de prueba: puede cometer errores o estar limitado en algunas funciones. Verifica siempre contra el documento oficial. (IA: Claude Haiku 4.5)</div>
   </div>
@@ -1933,16 +1946,43 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
     if(!panel.hidden && !document.getElementById('chatQ').disabled) document.getElementById('chatQ').focus();
   }
 
-  let chatDoc = null;  // documento activo para el chat
+  let chatDoc = null;  // documento abierto; el asistente lo lee ademas del catalogo
   function resetChat(d){
     if(!puedo('usa_asistente')) return;   // concedido por perfil
     chatDoc = d;
-    document.getElementById('chatScope').textContent = d.titulo;
-    document.getElementById('chatLog').innerHTML =
-      `<div class="chat-empty">Hazme preguntas sobre <b>${esc(d.titulo)}</b>. Responderé citando el documento.</div>`;
-    document.getElementById('chatQ').disabled = false;
-    document.getElementById('chatSend').disabled = false;
-    document.getElementById('chatQ').placeholder = 'Pregunta sobre este documento…';
+    document.getElementById('chatScope').textContent = d ? d.titulo : 'Todo el inventario';
+    document.getElementById('chatQ').placeholder = d
+      ? 'Pregunta sobre este documento o busca otros…'
+      : 'Busca un documento o pregunta…';
+    //  OJO: antes aqui se vaciaba el registro. Ya no: al abrir un documento
+    //  desde la lista de resultados se perderia esa misma lista.
+    const log = document.getElementById('chatLog');
+    if(d && !log.querySelector('.chat-empty')){
+      marcarFichaActiva(d._key);
+      const nota = document.createElement('div');
+      nota.className = 'hit-n';
+      nota.style.textAlign = 'center';
+      nota.textContent = 'Abierto: ' + d.titulo;
+      log.appendChild(nota);
+      log.scrollTop = log.scrollHeight;
+    }
+  }
+
+  //  Resalta en los resultados el documento que se esta viendo
+  function marcarFichaActiva(clave){
+    document.querySelectorAll('#chatLog .hit').forEach(el=>{
+      el.classList.toggle('activo', el.dataset.clave === clave);
+    });
+  }
+
+  //  Abrir desde la lista de resultados. El panel se queda abierto a proposito:
+  //  cerrarlo haria perder las coincidencias recien encontradas.
+  function verDesdeChat(clave){
+    const d = INVENTARIO.find(x => x._key === clave);
+    if(!d){ addMsg('err', 'Ese documento ya no está en el inventario.'); return; }
+    showView('inv');          // la ficha puede abrirse estando en otra vista
+    select(clave);
+    marcarFichaActiva(clave);
   }
 
   function addMsg(cls, html){
@@ -1957,7 +1997,7 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
   }
 
   async function askAI(){
-    if(!chatDoc) return;
+    if(!puedo('usa_asistente')) return;
     const input = document.getElementById('chatQ');
     const pregunta = input.value.trim();
     if(!pregunta) return;
@@ -1965,21 +2005,44 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
     const send = document.getElementById('chatSend');
     input.disabled = true; send.disabled = true;
     addMsg('me', esc(pregunta));
-    const pending = addMsg('bot think', 'Consultando el documento…');
+    const pending = addMsg('bot think', chatDoc ? 'Consultando…' : 'Buscando en el inventario…');
 
     try {
+      //  'archivo' solo viaja si hay documento abierto. Sin el, la funcion se
+      //  limita a buscar en el catalogo que el perfil permite ver.
       const { data, error } = await sb.functions.invoke('preguntar', {
-        body: { archivo: chatDoc.archivo, pregunta }
+        body: { archivo: chatDoc ? chatDoc.archivo : null, pregunta }
       });
       if(error) throw error;
       if(data && data.error) throw new Error(data.error);
 
       pending.classList.remove('think');
       let html = esc(data.respuesta || 'Sin respuesta.');
+
+      //  Documentos encontrados: fichas con boton para abrirlos en el visor.
+      //  La clave viene validada contra el catalogo por la propia funcion, y
+      //  su formato (tabla:numero) no admite comillas, asi que es segura aqui.
+      if(data.documentos && data.documentos.length){
+        html += `<div class="hits">` + data.documentos.map(h=>{
+          const meta = [h.tipo, h.entidad, (h.fecha || h.anio), h.parte]
+            .filter(Boolean).map(x=>esc(String(x))).join(' · ');
+          return `<div class="hit" data-clave="${esc(h.clave)}">
+            <div class="hit-main">
+              <div class="hit-tit">${esc(h.titulo || '(sin título)')}</div>
+              <div class="hit-meta">${meta}</div>
+            </div>
+            <button class="hit-ver" onclick="verDesdeChat('${esc(h.clave)}')">Ver documento</button>
+          </div>`;
+        }).join('') + `</div>`;
+        html += `<div class="hit-n">${data.documentos.length} documento(s)` +
+                (data.catalogo ? ` · buscado entre ${data.catalogo}` : '') + `</div>`;
+      }
+
       if(data.paginas && data.paginas.length){
         html += `<div class="cites">` + data.paginas.map(p=>`<span class="cite">pág. ${p}</span>`).join('') + `</div>`;
       }
       pending.innerHTML = html;
+      if(chatDoc) marcarFichaActiva(chatDoc._key);
     } catch(e){
       pending.className = 'msg err';
       let msg = (e && e.message) ? e.message : String(e);
@@ -1995,6 +2058,7 @@ Deberá cambiarla al entrar. Mínimo 8 caracteres.`, sugerirClave());
       else if(/too large|22 MB|413/i.test(msg)) msg = 'El documento es demasiado grande para el asistente.';
       else if(/prompt is too long|context|maximum.*tokens/i.test(msg)) msg = 'El documento es demasiado extenso para responder de una sola vez.';
       else if(/invalid x-api-key|authentication_error/i.test(msg)) msg = 'La clave de Claude no es válida. Revisa el secreto ANTHROPIC_API_KEY en Supabase.';
+      else if(/No tienes acceso a ese documento/i.test(msg)) msg = 'Tu perfil no tiene acceso a ese documento.';
       pending.textContent = 'No se pudo obtener respuesta: ' + msg;
     } finally {
       input.disabled = false; send.disabled = false;
